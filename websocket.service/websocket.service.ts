@@ -69,15 +69,9 @@ export class WebsocketStream implements IDisposable
         );
     }
 
-    public start(rows: number, cols: number) // take in terminal size?
+    public async start(rows: number, cols: number) // take in terminal size?
     {
         this.websocket = this.createConnection();
-
-        this.websocket.start().then(_ => {
-            // start the shell terminal on the backend, use current terminal dimensions
-            // to setup the terminal size
-            this.sendShellConnect(rows, cols);
-        });
 
         this.websocket.on(
             ShellHubIncomingMessages.shellOutput,
@@ -112,6 +106,10 @@ export class WebsocketStream implements IDisposable
 
         // won't get called at the moment since closing connection does not imply closing websocket
         this.websocket.onclose(() => this.shellStateSubject.complete());
+
+        await this.websocket.start();
+
+        this.sendShellConnect(rows, cols);
     }
 
     public sendShellConnect(rows: number, cols: number)
@@ -134,7 +132,7 @@ export class WebsocketStream implements IDisposable
         const connectionBuilder = new HubConnectionBuilder();
         connectionBuilder.withUrl(
             connectionUrl,
-            { headers: { authorization: this.authConfigService.getIdToken() } }
+            { accessTokenFactory: () => this.authConfigService.getIdToken() }
         ).configureLogging(6); // log level 6 is no websocket logs
 
         return connectionBuilder.build();
