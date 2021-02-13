@@ -2,7 +2,8 @@ export const ShellHubIncomingMessages = {
     shellOutput: "ShellOutput",
     shellDisconnect: "ShellDisconnect",
     shellStart: "ShellStart",
-    shellDelete: "ShellDelete"
+    shellDelete: "ShellDelete",
+    connectionReady: "ConnectionReady"
 }
     
 export const ShellHubOutgoingMessages = {
@@ -12,6 +13,8 @@ export const ShellHubOutgoingMessages = {
 }
 
 export interface ShellState {
-    loading: boolean;
-    disconnected: boolean;
+    start: boolean;
+    disconnect: boolean; 
+    delete: boolean;
+    ready: boolean;
 }

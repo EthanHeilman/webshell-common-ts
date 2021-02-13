@@ -5,7 +5,7 @@ import { ShellHubIncomingMessages, ShellHubOutgoingMessages, ShellState } from '
 export interface AuthConfigService {
     getServiceUrl: () => string;
     getSessionId: () => string;
-    getIdToken: () => string;
+    getIdToken: () => Promise<string>;
 }
 
 // ref: https://gist.github.com/dsherret/cf5d6bec3d0f791cef00
@@ -27,16 +27,15 @@ export class WebsocketStream implements IDisposable
     private websocket : HubConnection;
 
     // stdout
-    private outputSubject: BehaviorSubject<Uint8Array> = new BehaviorSubject<Uint8Array>(new Uint8Array());
-    public outputData: Observable<Uint8Array> = this.outputSubject.asObservable();
-
+    private outputSubject: BehaviorSubject<string>; 
+    public outputData: Observable<string>;
     // stdin
     private inputSubscription: Subscription;
     private resizeSubscription: Subscription;
 
     // shell state
-    private shellStateSubject: BehaviorSubject<ShellState> = new BehaviorSubject<ShellState>({loading: true, disconnected: false});
-    public shellStateData: Observable<ShellState> = this.shellStateSubject.asObservable();
+    private shellStateSubject: BehaviorSubject<ShellState>; 
+    public shellStateData: Observable<ShellState>;
 
     constructor(
         private authConfigService: AuthConfigService,
@@ -45,6 +44,12 @@ export class WebsocketStream implements IDisposable
         resizeStream: BehaviorSubject<TerminalSize>
     )
     {
+        this.outputSubject = new BehaviorSubject<string>("");
+        this.outputData = this.outputSubject.asObservable();
+        this.shellStateSubject = new BehaviorSubject<ShellState>({start: false, disconnect: false, delete: false, ready: false});
+        this.shellStateData = this.shellStateSubject.asObservable();
+
+
         this.connectionId = connectionId;
 
         this.inputSubscription = inputStream.asObservable().subscribe(
@@ -71,20 +76,22 @@ export class WebsocketStream implements IDisposable
 
     public async start(rows: number, cols: number) // take in terminal size?
     {
-        this.websocket = this.createConnection();
+        this.websocket = await this.createConnection();
 
         this.websocket.on(
             ShellHubIncomingMessages.shellOutput,
             req =>
             {
                 // ref: https://git.coolaj86.com/coolaj86/atob.js/src/branch/master/node-atob.js
-                var decodedOutput = Buffer.from(req.data, 'base64');
-                this.outputSubject.next(decodedOutput);
+                // var decodedOutput = Buffer.from(req.data, 'base64');
+                this.outputSubject.next(req.data);
             }
         );
         this.websocket.on(
             ShellHubIncomingMessages.shellStart,
-            () => this.shellStateSubject.next({loading: false, disconnected: false})
+            () => {
+                this.shellStateSubject.next({start: true, disconnect: false, delete: false, ready: false})
+            }
         );
 
         // TODO: reconnect flow
@@ -92,7 +99,7 @@ export class WebsocketStream implements IDisposable
         this.websocket.on(
             ShellHubIncomingMessages.shellDisconnect,
             () => {
-                this.shellStateSubject.complete();
+                this.shellStateSubject.next({start: false, disconnect: true, delete: false, ready: false});
             }
         );
 
@@ -100,12 +107,20 @@ export class WebsocketStream implements IDisposable
         this.websocket.on(
             ShellHubIncomingMessages.shellDelete,
             () => {
-                this.shellStateSubject.complete();
+                this.shellStateSubject.next({start: false, disconnect: true, delete: false, ready: false});
+            }
+        );
+
+        this.websocket.on(
+            ShellHubIncomingMessages.connectionReady,
+            _ => {
+                this.shellStateSubject.next({start: false, disconnect: false, delete: false, ready: true});
+                this.sendShellConnect(rows, cols);
             }
         );
 
         // won't get called at the moment since closing connection does not imply closing websocket
-        this.websocket.onclose(() => this.shellStateSubject.complete());
+        this.websocket.onclose(() => this.shellStateSubject.next({start: false, disconnect: false, delete: false, ready: false}));
 
         await this.websocket.start();
 
@@ -121,20 +136,18 @@ export class WebsocketStream implements IDisposable
             );
     }
 
-
-    private createConnection(): HubConnection {
+    public async createConnection(): Promise<HubConnection> {
         // connectionId is related to terminal session
         // sessionId is for user authentication
         const queryString = `?connectionId=${this.connectionId}&session_id=${this.authConfigService.getSessionId()}`;
 
-        const connectionUrl = `${this.authConfigService.getServiceUrl()}api/v1/hub/ssh/${queryString}`;
+        const connectionUrl = `${this.authConfigService.getServiceUrl()}hub/ssh/${queryString}`;
 
         const connectionBuilder = new HubConnectionBuilder();
         connectionBuilder.withUrl(
             connectionUrl,
-            { accessTokenFactory: () => this.authConfigService.getIdToken() }
+            { accessTokenFactory: async () => await this.authConfigService.getIdToken()}
         ).configureLogging(6); // log level 6 is no websocket logs
-
         return connectionBuilder.build();
     }
 
