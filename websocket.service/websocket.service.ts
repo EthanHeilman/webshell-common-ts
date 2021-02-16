@@ -74,7 +74,7 @@ export class WebsocketStream implements IDisposable
         );
     }
 
-    public async start(rows: number, cols: number) // take in terminal size?
+    public async start() // take in terminal size?
     {
         this.websocket = await this.createConnection();
 
@@ -83,7 +83,6 @@ export class WebsocketStream implements IDisposable
             req =>
             {
                 // ref: https://git.coolaj86.com/coolaj86/atob.js/src/branch/master/node-atob.js
-                // var decodedOutput = Buffer.from(req.data, 'base64');
                 this.outputSubject.next(req.data);
             }
         );
@@ -94,8 +93,6 @@ export class WebsocketStream implements IDisposable
             }
         );
 
-        // TODO: reconnect flow
-        // Change the following to be a .next({loading: false, disconnected: true}) call
         this.websocket.on(
             ShellHubIncomingMessages.shellDisconnect,
             () => {
@@ -115,7 +112,6 @@ export class WebsocketStream implements IDisposable
             ShellHubIncomingMessages.connectionReady,
             _ => {
                 this.shellStateSubject.next({start: false, disconnect: false, delete: false, ready: true});
-                this.sendShellConnect(rows, cols);
             }
         );
 
@@ -123,8 +119,6 @@ export class WebsocketStream implements IDisposable
         this.websocket.onclose(() => this.shellStateSubject.next({start: false, disconnect: false, delete: false, ready: false}));
 
         await this.websocket.start();
-
-        this.sendShellConnect(rows, cols);
     }
 
     public sendShellConnect(rows: number, cols: number)
