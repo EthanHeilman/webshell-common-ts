@@ -3,18 +3,19 @@ import * as secp from "noble-secp256k1";
 const crypto = require('crypto');
 const atob = require('atob');
 
-import { ConfigInterface, KeySplittingConfigSchema } from "./keysplitting.service.types";
-import { BZECert, SynMessageWrapper } from './keysplitting-types';
+import { ConfigInterface, KeySplittingConfigSchema, ILogger } from "./keysplitting.service.types";
+import { BZECert } from './keysplitting-types';
 
-export class KeySplittingBase {
-    public config: ConfigInterface
-    public data: KeySplittingConfigSchema
+export class KeySplittingService {
+    private config: ConfigInterface
+    private data: KeySplittingConfigSchema
+    private logger: ILogger;
     private publicKey: Uint8Array;
     private privateKey: Uint8Array;
-    private synHash: string;
 
-    constructor(config: ConfigInterface) {
+    constructor(config: ConfigInterface, logger: ILogger) {
         this.config = config;
+        this.logger = logger;
         this.data = this.config.loadKeySplitting();
     }
 
@@ -26,16 +27,10 @@ export class KeySplittingBase {
         await this.generateCerRand();
     }
 
-    public updateId(idToken: string) {
-        if (this.data.initialIdToken == undefined) {
-            this.data.initialIdToken = idToken;
-            this.config.updateKeySplitting(this.data);
-        }
-    }
-
-    public updateLatestId(latestIdToken: string) {
+    public setInitialIdToken(latestIdToken: string) {
         this.data.initialIdToken = latestIdToken;
         this.config.updateKeySplitting(this.data);
+        this.logger.debug('Updated latestIdToken');
     }
 
     public getConfig() {
@@ -68,6 +63,7 @@ export class KeySplittingBase {
     
             // Update our config
             this.config.updateKeySplitting(this.data);
+            this.logger.debug('Generated cerRand and cerRandSig');
         }
     }
 
@@ -79,50 +75,27 @@ export class KeySplittingBase {
 
         // Update and return
         hashClient.update(hashString);
-        return hashClient.digest('base64');
-        // var md = forge.md.sha256.create();
-        // md.update(hashString);
-        // var nonceCreated = md.digest().toHex();
-        // this.logger.debug(`Creating new nonce: ${nonceCreated}`);
-        // return nonceCreated;
+
+        let nonce = hashClient.digest('base64');
+        this.logger.debug(`Creating new nonce: ${nonce}`);
+        return nonce;
     }
 
-    public reset() {
+    public async reset() {
         // Reset our keys and recreate them
         this.data.privateKey = undefined;
         this.data.publicKey = undefined;
         this.data.cerRand = undefined;
         this.data.cerRandSig = undefined;
-        this.init()
+        await this.init()
+        this.logger.debug('Reset keysplitting service');
     }
-
-    // public async setSynHash(synMessage: SynMessageWrapper) {
-    //     // Helper function to save our syn hash
-    //     // First get the SHA3 hash
-    //     let shaHash = this.hashHelper(synMessage.toString());
-
-    //     // Then encode and save 
-    //     this.synHash = shaHash.toString('base64');
-    // }
 
     private hashHelper(toHash: string) {
         // Helper function to hash a string for us
         const hashClient = new SHA3(256);
         hashClient.update(toHash);
         return hashClient.digest('base64');
-        // var md = forge.md.sha256.create();
-        // md.update(toHash);
-        // return md.digest().toHex()
-    }
-
-    private base64ToArrayBuffer(base64: string) {
-        var binary_string = atob(base64);
-        var len = binary_string.length;
-        var bytes = new Uint8Array(len);
-        for (var i = 0; i < len; i++) {
-            bytes[i] = binary_string.charCodeAt(i);
-        }
-        return new Uint8Array(bytes.buffer);
     }
 
     public generateKeys() {
@@ -130,7 +103,6 @@ export class KeySplittingBase {
         if (this.data.privateKey == undefined) {
             // We need to create and store new keys for the user
             // Create our keys
-            // this.privateKey = secp.utils.randomPrivateKey();
             this.privateKey = crypto.randomBytes(32);
             this.publicKey = secp.getPublicKey(this.privateKey);
 
@@ -138,15 +110,17 @@ export class KeySplittingBase {
             this.data.privateKey = Buffer.from(this.privateKey).toString('base64');
             this.data.publicKey = Buffer.from(this.publicKey).toString('base64');
             this.config.updateKeySplitting(this.data);
+            this.logger.debug('Generated keysplitting keys')
         } else {
             // We need to load in our keys
-            this.privateKey = this.base64ToArrayBuffer(this.data.privateKey);
+            this.privateKey = Buffer.from(this.data.privateKey, 'base64');
             this.publicKey = secp.getPublicKey(this.privateKey);
 
             // Validate the public key
             if (Buffer.from(this.publicKey).toString('base64') != this.data.publicKey) {
                 throw new Error('Error loading keys, please check your key configuration');
             }
+            this.logger.debug('Loaded keysplitting keys')
         }
     }
 }
