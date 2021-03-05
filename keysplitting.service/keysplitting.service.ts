@@ -109,7 +109,7 @@ export class KeySplittingBase {
         // Helper function to hash a string for us
         const hashClient = new SHA3(256);
         hashClient.update(toHash);
-        return hashClient.digest('hex');
+        return hashClient.digest('base64');
         // var md = forge.md.sha256.create();
         // md.update(toHash);
         // return md.digest().toHex()
