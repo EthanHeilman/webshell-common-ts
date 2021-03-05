@@ -4,14 +4,14 @@ const crypto = require('crypto');
 const atob = require('atob');
 
 import { ConfigInterface, KeySplittingConfigSchema } from "./keysplitting.service.types";
-import { BZECert } from './keysplitting-types';
-
+import { BZECert, SynMessageWrapper } from './keysplitting-types';
 
 export class KeySplittingBase {
     public config: ConfigInterface
     public data: KeySplittingConfigSchema
     private publicKey: Uint8Array;
     private privateKey: Uint8Array;
+    private synHash: string;
 
     constructor(config: ConfigInterface) {
         this.config = config;
@@ -27,8 +27,10 @@ export class KeySplittingBase {
     }
 
     public updateId(idToken: string) {
-        this.data.initialIdToken = idToken;
-        this.config.updateKeySplitting(this.data);
+        if (this.data.initialIdToken == undefined) {
+            this.data.initialIdToken = idToken;
+            this.config.updateKeySplitting(this.data);
+        }
     }
 
     public updateLatestId(latestIdToken: string) {
@@ -38,16 +40,6 @@ export class KeySplittingBase {
 
     public getConfig() {
         return this.data;
-    }
-
-    public createNonce() {
-        // Helper function to create a Nonce 
-        const hashClient = new SHA3(512);
-        const hashString = "".concat(this.data.publicKey, this.data.cerRandSig, this.data.cerRand.toString());
-
-        // Update and return
-        hashClient.update(hashString);
-        return hashClient.digest('hex');
     }
 
     public async getBZECert(currentIdToken: string): Promise<BZECert> {
@@ -62,21 +54,65 @@ export class KeySplittingBase {
 
     public async getBZECertHash(currentIdToken: string): Promise<string> {
         let BZECert = this.getBZECert(currentIdToken);
-        const hashClient = new SHA3(512);
-        hashClient.update(BZECert.toString());
-        return hashClient.digest('hex');
+        return this.hashHelper(BZECert.toString());
     }
     
     public async generateCerRand() {
         // Helper function to generate and store our cerRand and cerRandSig
-        var cerRand = crypto.randomBytes(32)
-        this.data.cerRand = cerRand.toString('hex');;
+        if (this.data.cerRand == undefined || this.data.cerRandSig == undefined) {
+            var cerRand = crypto.randomBytes(32)
+            this.data.cerRand = cerRand.toString('base64');
+    
+            var cerRandSig = await secp.sign(cerRand, this.privateKey);
+            this.data.cerRandSig = Buffer.from(cerRandSig).toString('base64');
+    
+            // Update our config
+            this.config.updateKeySplitting(this.data);
+        }
+    }
 
-        var cerRandSig = await secp.sign(cerRand, this.privateKey);
-        this.data.cerRandSig = Buffer.from(cerRandSig).toString('base64');
 
-        // Update our config
-        this.config.updateKeySplitting(this.data);
+    public createNonce() {
+        // Helper function to create a Nonce 
+        const hashClient = new SHA3(256);
+        const hashString = "".concat(this.data.publicKey, this.data.cerRandSig, this.data.cerRand);
+
+        // Update and return
+        hashClient.update(hashString);
+        return hashClient.digest('base64');
+        // var md = forge.md.sha256.create();
+        // md.update(hashString);
+        // var nonceCreated = md.digest().toHex();
+        // this.logger.debug(`Creating new nonce: ${nonceCreated}`);
+        // return nonceCreated;
+    }
+
+    public reset() {
+        // Reset our keys and recreate them
+        this.data.privateKey = undefined;
+        this.data.publicKey = undefined;
+        this.data.cerRand = undefined;
+        this.data.cerRandSig = undefined;
+        this.init()
+    }
+
+    // public async setSynHash(synMessage: SynMessageWrapper) {
+    //     // Helper function to save our syn hash
+    //     // First get the SHA3 hash
+    //     let shaHash = this.hashHelper(synMessage.toString());
+
+    //     // Then encode and save 
+    //     this.synHash = shaHash.toString('base64');
+    // }
+
+    private hashHelper(toHash: string) {
+        // Helper function to hash a string for us
+        const hashClient = new SHA3(256);
+        hashClient.update(toHash);
+        return hashClient.digest('hex');
+        // var md = forge.md.sha256.create();
+        // md.update(toHash);
+        // return md.digest().toHex()
     }
 
     private base64ToArrayBuffer(base64: string) {
@@ -94,7 +130,8 @@ export class KeySplittingBase {
         if (this.data.privateKey == undefined) {
             // We need to create and store new keys for the user
             // Create our keys
-            this.privateKey = secp.utils.randomPrivateKey();
+            // this.privateKey = secp.utils.randomPrivateKey();
+            this.privateKey = crypto.randomBytes(32);
             this.publicKey = secp.getPublicKey(this.privateKey);
 
             // Store our keys
