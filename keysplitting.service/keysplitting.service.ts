@@ -38,6 +38,8 @@ export class KeySplittingService {
     }
 
     public async getBZECert(currentIdToken: string): Promise<BZECert> {
+        if (this.data.initialIdToken == undefined || this.data.publicKey == undefined || this.data.cerRand == undefined || this.data.cerRandSig == undefined)
+            throw new Error("Undefined values in BZECert!");
         return {
             InitialIdToken: this.data.initialIdToken,
             CurrentIdToken: currentIdToken,
