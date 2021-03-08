@@ -1,7 +1,5 @@
-
-
 import { ILogger } from './logging.types';
-import signalR, { LogLevel } from "@microsoft/signalr";
+import signalR, { LogLevel } from '@microsoft/signalr';
 
 // Class that wraps our ILogger in order to conform to signalR's ILogger interface
 export class SignalRLogger implements signalR.ILogger
@@ -35,7 +33,7 @@ export class SignalRLogger implements signalR.ILogger
             case LogLevel.None:
                 break;
             default:
-                throw new Error("Unhandled signal log level");
+                throw new Error('Unhandled signal log level');
         }
     }
 }
