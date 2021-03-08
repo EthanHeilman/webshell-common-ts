@@ -3,7 +3,8 @@ import * as secp from "noble-secp256k1";
 const crypto = require('crypto');
 const atob = require('atob');
 
-import { ConfigInterface, KeySplittingConfigSchema, ILogger } from "./keysplitting.service.types";
+import { ILogger } from '../logging/logging.types'
+import { ConfigInterface, KeySplittingConfigSchema } from './keysplitting.service.types';
 import { BZECert } from './keysplitting-types';
 
 export class KeySplittingService {
