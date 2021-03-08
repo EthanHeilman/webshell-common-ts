@@ -122,6 +122,11 @@ export class KeySplittingService {
         allKeys.sort();
         return JSON.stringify( obj, allKeys);
     }
+    
+    public async getSynHash(synMessage: SynMessagePayload): Promise<string> {
+        // Helper function to save our syn hash
+        return this.hashHelper(JSON.stringify(synMessage));
+    }
 
     private hashHelper(toHash: string) {
         // Helper function to hash a string for us
