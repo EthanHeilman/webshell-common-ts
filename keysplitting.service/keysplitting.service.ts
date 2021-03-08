@@ -21,10 +21,11 @@ export class KeySplittingService {
 
     public async init() {
         // Generate our keys and load them in
-        this.generateKeys();
+        this.loadKeys();
 
-        // Generate our cerRan and cerRanSig 
-        await this.generateCerRand();
+        // Generate our cerRan and cerRanSig if they are undefined
+        if (this.data.cerRand == undefined || this.data.cerRandSig == undefined)
+            await this.generateCerRand();
     }
 
     public setInitialIdToken(latestIdToken: string) {
@@ -53,20 +54,18 @@ export class KeySplittingService {
         let BZECert = this.getBZECert(currentIdToken);
         return this.hashHelper(BZECert.toString());
     }
-    
+
     public async generateCerRand() {
         // Helper function to generate and store our cerRand and cerRandSig
-        if (this.data.cerRand == undefined || this.data.cerRandSig == undefined) {
-            var cerRand = crypto.randomBytes(32)
-            this.data.cerRand = cerRand.toString('base64');
-    
-            var cerRandSig = await secp.sign(cerRand, this.privateKey);
-            this.data.cerRandSig = Buffer.from(cerRandSig).toString('base64');
-    
-            // Update our config
-            this.config.updateKeySplitting(this.data);
-            this.logger.debug('Generated cerRand and cerRandSig');
-        }
+        var cerRand = crypto.randomBytes(32)
+        this.data.cerRand = cerRand.toString('base64');
+
+        var cerRandSig = await secp.sign(cerRand, this.privateKey);
+        this.data.cerRandSig = Buffer.from(cerRandSig).toString('base64');
+
+        // Update our config
+        this.config.updateKeySplitting(this.data);
+        this.logger.debug('Generated cerRand and cerRandSig');
     }
 
 
@@ -83,13 +82,10 @@ export class KeySplittingService {
         return nonce;
     }
 
-    public async reset() {
+    public async generateKeysplittingLoginData() {
         // Reset our keys and recreate them
-        this.data.privateKey = undefined;
-        this.data.publicKey = undefined;
-        this.data.cerRand = undefined;
-        this.data.cerRandSig = undefined;
-        await this.init()
+        this.generateKeys();
+        this.generateCerRand();
         this.logger.debug('Reset keysplitting service');
     }
 
@@ -100,21 +96,12 @@ export class KeySplittingService {
         return hashClient.digest('base64');
     }
 
-    public generateKeys() {
+    private loadKeys() {
         // Helper function to check if keys are undefined and, generate new ones
         if (this.data.privateKey == undefined) {
-            // We need to create and store new keys for the user
-            // Create our keys
-            this.privateKey = crypto.randomBytes(32);
-            this.publicKey = secp.getPublicKey(this.privateKey);
-
-            // Store our keys
-            this.data.privateKey = Buffer.from(this.privateKey).toString('base64');
-            this.data.publicKey = Buffer.from(this.publicKey).toString('base64');
-            this.config.updateKeySplitting(this.data);
-            this.logger.debug('Generated keysplitting keys')
+            this.generateKeys();
         } else {
-            // We need to load in our keys
+            // We need to load in our keys 
             this.privateKey = Buffer.from(this.data.privateKey, 'base64');
             this.publicKey = secp.getPublicKey(this.privateKey);
 
@@ -124,5 +111,17 @@ export class KeySplittingService {
             }
             this.logger.debug('Loaded keysplitting keys')
         }
+    }
+
+    private generateKeys() {
+        // Create our keys
+        this.privateKey = crypto.randomBytes(32);
+        this.publicKey = secp.getPublicKey(this.privateKey);
+
+        // Update our config
+        this.data.privateKey = Buffer.from(this.privateKey).toString('base64');
+        this.data.publicKey = Buffer.from(this.publicKey).toString('base64');
+        this.config.updateKeySplitting(this.data);
+        this.logger.debug('Generated keysplitting keys')
     }
 }
