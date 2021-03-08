@@ -17,15 +17,9 @@ export class KeySplittingService {
         this.config = config;
         this.logger = logger;
         this.data = this.config.loadKeySplitting();
-    }
-
-    public async init() {
-        // Generate our keys and load them in
+        
+        // Load our keys if they are there
         this.loadKeys();
-
-        // Generate our cerRan and cerRanSig if they are undefined
-        if (this.data.cerRand == undefined || this.data.cerRandSig == undefined)
-            await this.generateCerRand();
     }
 
     public setInitialIdToken(latestIdToken: string) {
@@ -98,9 +92,7 @@ export class KeySplittingService {
 
     private loadKeys() {
         // Helper function to check if keys are undefined and, generate new ones
-        if (this.data.privateKey == undefined) {
-            this.generateKeys();
-        } else {
+        if (this.data.privateKey != undefined) {
             // We need to load in our keys 
             this.privateKey = Buffer.from(this.data.privateKey, 'base64');
             this.publicKey = secp.getPublicKey(this.privateKey);
