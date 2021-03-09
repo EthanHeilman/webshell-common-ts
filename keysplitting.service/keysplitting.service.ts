@@ -5,7 +5,7 @@ const atob = require('atob');
 
 import { ILogger } from '../logging/logging.types';
 import { ConfigInterface, KeySplittingConfigSchema } from './keysplitting.service.types';
-import { BZECert } from './keysplitting-types';
+import { BZECert, SynMessagePayload, DataMessagePayload } from './keysplitting-types';
 
 export class KeySplittingService {
     private config: ConfigInterface
@@ -93,13 +93,11 @@ export class KeySplittingService {
     public async setExpectedHPointerSyn(synMessage: SynMessagePayload) {
         // Helper function to save our syn hash
         this.expectedHPointer = this.hashHelper(JSON.stringify(synMessage,  Object.keys(synMessage).sort()));
-        this.logger.debug(`EXPECTED SYN HPOINTER: ${this.expectedHPointer}`);
     }
 
     public async setExpectedHPointerData(dataMessage: DataMessagePayload) {
         // Helper function to save our data hash
         this.expectedHPointer = this.hashHelper(JSON.stringify(dataMessage,  Object.keys(dataMessage).sort()));
-        this.logger.debug(`EXPECTED DATA HPOINTER: ${this.expectedHPointer}`);
     }
 
     public validateHPointer(hPointer: string) {
