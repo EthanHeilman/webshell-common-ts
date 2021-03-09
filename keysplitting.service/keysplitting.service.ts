@@ -24,7 +24,7 @@ export class KeySplittingService {
         // Initially our expected HPointer is null
         this.expectedHPointer = null;
         this.currentHPointer = null;
-        
+
         // Load our keys if they are there
         this.loadKeys();
     }
@@ -48,7 +48,7 @@ export class KeySplittingService {
             clientPublicKey: this.data.publicKey,
             rand: this.data.cerRand,
             signatureOnRand: this.data.cerRandSig
-        }
+        };
     }
 
     public async getBZECertHash(currentIdToken: string): Promise<string> {
@@ -103,7 +103,7 @@ export class KeySplittingService {
     public validateHPointer(hPointer: string) {
         if (this.expectedHPointer != null)
             if (this.expectedHPointer == hPointer) {
-                // Update the current HPointer 
+                // Update the current HPointer
                 this.currentHPointer = this.expectedHPointer;
 
                 // Return True
@@ -112,7 +112,7 @@ export class KeySplittingService {
                 // Else they don't equal each other, return False
                 return false;
             }
-        throw Error("Expected HPointer is not set!");
+        throw Error('Expected HPointer is not set!');
     }
 
     private hashHelper(toHash: string) {
