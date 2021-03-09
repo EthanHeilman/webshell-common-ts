@@ -5,7 +5,7 @@ const atob = require('atob');
 
 import { ILogger } from '../logging/logging.types';
 import { ConfigInterface, KeySplittingConfigSchema } from './keysplitting.service.types';
-import { BZECert, SynMessagePayload, DataMessagePayload } from './keysplitting-types';
+import { BZECert, SynMessagePayload, DataMessagePayload, SynMessage, DataMessage } from './keysplitting-types';
 
 export class KeySplittingService {
     private config: ConfigInterface
