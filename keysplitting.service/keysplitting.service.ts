@@ -53,7 +53,7 @@ export class KeySplittingService {
 
     public async getBZECertHash(currentIdToken: string): Promise<string> {
         let BZECert = await this.getBZECert(currentIdToken);
-        return this.hashHelper(JSON.stringify(BZECert));
+        return this.hashHelper(JSON.stringify(BZECert, Object.keys(BZECert).sort()));
     }
 
     public async generateCerRand() {
@@ -92,13 +92,13 @@ export class KeySplittingService {
 
     public async setExpectedHPointerSyn(synMessage: SynMessagePayload) {
         // Helper function to save our syn hash
-        this.expectedHPointer = this.hashHelper(JSON.stringify(synMessage));
+        this.expectedHPointer = this.hashHelper(JSON.stringify(synMessage,  Object.keys(synMessage).sort()));
         this.logger.debug(`EXPECTED SYN HPOINTER: ${this.expectedHPointer}`);
     }
 
     public async setExpectedHPointerData(dataMessage: DataMessagePayload) {
         // Helper function to save our data hash
-        this.expectedHPointer = this.hashHelper(JSON.stringify(dataMessage));
+        this.expectedHPointer = this.hashHelper(JSON.stringify(dataMessage,  Object.keys(dataMessage).sort()));
         this.logger.debug(`EXPECTED DATA HPOINTER: ${this.expectedHPointer}`);
     }
 
