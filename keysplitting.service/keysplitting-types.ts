@@ -7,7 +7,7 @@ export interface BZECert {
 }
 
 export interface KeySplittingPayload {
-    type: string, 
+    type: string,
     action: string
 }
 
@@ -16,26 +16,26 @@ export interface KeySplittingMessage<TPayload> {
     signature: string
 }
 export interface SynMessagePayload extends KeySplittingPayload {
-    nonce: string, 
-    targetId: string, 
+    nonce: string,
+    targetId: string,
     BZECert: BZECert
 }
 
 export interface DataMessagePayload extends KeySplittingPayload {
-    targetId: string, 
+    targetId: string,
     hPointer: string,
-    payload: string, 
+    payload: string,
     BZECert: string
 }
 export interface SynAckPayload extends KeySplittingPayload {
     hPointer: string,
-    nonce: string, 
+    nonce: string,
     targetPublicKey: string
 }
 
 export interface DataAckPayload extends KeySplittingPayload {
-    hPointer: string, 
-    payload: string, 
+    hPointer: string,
+    payload: string,
     targetPublicKey: string
 }
 
@@ -64,6 +64,10 @@ export interface DataMessageWrapper {
 
 export interface DataAckMessageWrapper {
     dataAckPayload: DataAckMessage
+}
+
+export interface ErrorMessageWrapper {
+    errorPayload: ErrorPayload;
 }
 
 export interface SynAckMessageWrapper {
