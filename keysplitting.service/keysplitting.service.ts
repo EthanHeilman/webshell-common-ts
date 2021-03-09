@@ -61,7 +61,7 @@ export class KeySplittingService {
         var cerRand = crypto.randomBytes(32);
         this.data.cerRand = cerRand.toString('base64');
 
-        var cerRandSig = await secp.sign(cerRand, this.privateKey);
+        var cerRandSig = await this.signHelper(cerRand);
         this.data.cerRandSig = Buffer.from(cerRandSig).toString('base64');
 
         // Update our config
@@ -123,11 +123,24 @@ export class KeySplittingService {
         return JSON.stringify( obj, allKeys);
     }
 
+    public signSynMessage(synMessage: SynMessage) {
+        return this.signHelper(JSON.stringify(synMessage, Object.keys(synMessage).sort()))
+    }
+
+    public signDataMessage(dataMessage: DataMessage) {
+        return this.signHelper(JSON.stringify(dataMessage, Object.keys(dataMessage).sort()))
+    }
+
     private hashHelper(toHash: string) {
         // Helper function to hash a string for us
         const hashClient = new SHA3(256);
         hashClient.update(toHash);
         return hashClient.digest('base64');
+    }
+
+    private async signHelper(toSign: string) {
+        // Helper function to sign a string for us
+        return await secp.sign(toSign, this.privateKey);
     }
 
     private loadKeys() {
