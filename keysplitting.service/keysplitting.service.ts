@@ -5,7 +5,7 @@ const atob = require('atob');
 
 import { ILogger } from '../logging/logging.types';
 import { ConfigInterface, KeySplittingConfigSchema } from './keysplitting.service.types';
-import { BZECert } from './keysplitting-types';
+import { BZECert, SynMessagePayload, DataMessagePayload } from './keysplitting-types';
 
 export class KeySplittingService {
     private config: ConfigInterface
@@ -13,12 +13,18 @@ export class KeySplittingService {
     private logger: ILogger;
     private publicKey: Uint8Array;
     private privateKey: Uint8Array;
+    private expectedHPointer: string;
+    private currentHPointer: string;
 
     constructor(config: ConfigInterface, logger: ILogger) {
         this.config = config;
         this.logger = logger;
         this.data = this.config.loadKeySplitting();
 
+        // Initially our expected HPointer is null
+        this.expectedHPointer = null;
+        this.currentHPointer = null;
+        
         // Load our keys if they are there
         this.loadKeys();
     }
@@ -37,17 +43,17 @@ export class KeySplittingService {
         if (this.data.initialIdToken == undefined || this.data.publicKey == undefined || this.data.cerRand == undefined || this.data.cerRandSig == undefined)
             throw new Error('Undefined values in BZECert!');
         return {
-            InitialIdToken: this.data.initialIdToken,
-            CurrentIdToken: currentIdToken,
-            ClientPublicKey: this.data.publicKey,
-            Rand: this.data.cerRand,
-            SignatureOnRand: this.data.cerRandSig
-        };
+            initialIdToken: this.data.initialIdToken,
+            currentIdToken: currentIdToken,
+            clientPublicKey: this.data.publicKey,
+            rand: this.data.cerRand,
+            signatureOnRand: this.data.cerRandSig
+        }
     }
 
     public async getBZECertHash(currentIdToken: string): Promise<string> {
-        let BZECert = this.getBZECert(currentIdToken);
-        return this.hashHelper(BZECert.toString());
+        let BZECert = await this.getBZECert(currentIdToken);
+        return this.hashHelper(JSON.stringify(BZECert, Object.keys(BZECert).sort()));
     }
 
     public async generateCerRand() {
@@ -84,6 +90,31 @@ export class KeySplittingService {
         this.logger.debug('Reset keysplitting service');
     }
 
+    public async setExpectedHPointerSyn(synMessage: SynMessagePayload) {
+        // Helper function to save our syn hash
+        this.expectedHPointer = this.hashHelper(JSON.stringify(synMessage,  Object.keys(synMessage).sort()));
+    }
+
+    public async setExpectedHPointerData(dataMessage: DataMessagePayload) {
+        // Helper function to save our data hash
+        this.expectedHPointer = this.hashHelper(JSON.stringify(dataMessage,  Object.keys(dataMessage).sort()));
+    }
+
+    public validateHPointer(hPointer: string) {
+        if (this.expectedHPointer != null)
+            if (this.expectedHPointer == hPointer) {
+                // Update the current HPointer 
+                this.currentHPointer = this.expectedHPointer;
+
+                // Return True
+                return true;
+            } else {
+                // Else they don't equal each other, return False
+                return false;
+            }
+        throw Error("Expected HPointer is not set!");
+    }
+
     private hashHelper(toHash: string) {
         // Helper function to hash a string for us
         const hashClient = new SHA3(256);
@@ -92,7 +123,7 @@ export class KeySplittingService {
     }
 
     private loadKeys() {
-        // Helper function to check if keys are undefined and, generate new ones
+        // Helper function to check if keys are undefined and load them in
         if (this.data.privateKey != undefined) {
             // We need to load in our keys
             this.privateKey = Buffer.from(this.data.privateKey, 'base64');
