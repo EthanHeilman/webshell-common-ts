@@ -53,7 +53,7 @@ export class KeySplittingService {
 
     public async getBZECertHash(currentIdToken: string): Promise<string> {
         let BZECert = await this.getBZECert(currentIdToken);
-        return this.hashHelper(JSON.stringify(BZECert, Object.keys(BZECert).sort()));
+        return this.hashHelper(this.JSONstringifyOrder(BZECert));
     }
 
     public async generateCerRand() {
@@ -92,12 +92,12 @@ export class KeySplittingService {
 
     public async setExpectedHPointerSyn(synMessage: SynMessagePayload) {
         // Helper function to save our syn hash
-        this.expectedHPointer = this.hashHelper(JSON.stringify(synMessage,  Object.keys(synMessage).sort()));
+        this.expectedHPointer = this.hashHelper(this.JSONstringifyOrder(synMessage));
     }
 
     public async setExpectedHPointerData(dataMessage: DataMessagePayload) {
         // Helper function to save our data hash
-        this.expectedHPointer = this.hashHelper(JSON.stringify(dataMessage,  Object.keys(dataMessage).sort()));
+        this.expectedHPointer = this.hashHelper(this.JSONstringifyOrder(dataMessage));
     }
 
     public validateHPointer(hPointer: string) {
@@ -113,6 +113,14 @@ export class KeySplittingService {
                 return false;
             }
         throw Error('Expected HPointer is not set!');
+    }
+
+    private JSONstringifyOrder(obj: any) {
+        // Ref: https://stackoverflow.com/a/53593328/9186330
+        let allKeys: string[] = [];
+        JSON.stringify( obj, function( key, value ){ allKeys.push( key ); return value; } )
+        allKeys.sort();
+        return JSON.stringify( obj, allKeys);
     }
 
     private hashHelper(toHash: string) {
