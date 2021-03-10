@@ -5,7 +5,7 @@ const atob = require('atob');
 
 import { ILogger } from '../logging/logging.types';
 import { ConfigInterface, KeySplittingConfigSchema } from './keysplitting.service.types';
-import { BZECert, SynMessagePayload, DataMessagePayload } from './keysplitting-types';
+import { BZECert, SynMessagePayload, DataMessagePayload, SynMessage, DataMessageWrapper, SynMessageWrapper, KeySplittingMessage } from './keysplitting-types';
 
 export class KeySplittingService {
     private config: ConfigInterface
@@ -61,14 +61,13 @@ export class KeySplittingService {
         var cerRand = crypto.randomBytes(32);
         this.data.cerRand = cerRand.toString('base64');
 
-        var cerRandSig = await secp.sign(cerRand, this.privateKey);
+        var cerRandSig = await this.signHelper(cerRand);
         this.data.cerRandSig = Buffer.from(cerRandSig).toString('base64');
 
         // Update our config
         this.config.updateKeySplitting(this.data);
         this.logger.debug('Generated cerRand and cerRandSig');
     }
-
 
     public createNonce() {
         // Helper function to create a Nonce
@@ -123,11 +122,67 @@ export class KeySplittingService {
         return JSON.stringify( obj, allKeys);
     }
 
+    public async buildDataMessage(targetId: string, action: string, currentIdToken: string): Promise<DataMessageWrapper> {
+        // Build our payload
+        let dataMessage = {
+            payload: {
+                type: 'DATA',
+                action: action,
+                hPointer: 'placeholder',
+                targetId: targetId,
+                BZECert: await this.getBZECertHash(currentIdToken),
+                payload: 'payload'
+            },
+            signature: ''
+        }
+
+        // Then calculate our signature
+        let signature = await this.signMessagePayload<DataMessagePayload>(dataMessage);
+
+        // Then build and return our wrapped object
+        dataMessage.signature = signature;
+        return {
+            dataPayload : dataMessage
+        };
+    }
+
+    public async buildSynMessage(targetId: string, action: string, currentIdToken: string): Promise<SynMessageWrapper> {
+        // Build our payload 
+        let synMessage = {
+            payload: {
+                type: 'SYN',
+                action: action,
+                nonce: crypto.randomBytes(32).toString('base64'),
+                targetId: targetId,
+                BZECert: await this.getBZECert(currentIdToken)
+            },
+            signature: ''
+        }
+
+        // Then calculate our signature
+        let signature = await this.signMessagePayload<SynMessagePayload>(synMessage);
+
+        // Then build and return our wrapped object
+        synMessage.signature = signature;
+        return {
+            synPayload : synMessage
+        };
+    }
+
+    private async signMessagePayload<T>(messagePayload: KeySplittingMessage<T>) {
+        return await this.signHelper(this.JSONstringifyOrder(messagePayload.payload));
+    }
+
     private hashHelper(toHash: string) {
         // Helper function to hash a string for us
         const hashClient = new SHA3(256);
         hashClient.update(toHash);
         return hashClient.digest('base64');
+    }
+
+    private async signHelper(toSign: string) {
+        // Helper function to sign a string for us
+        return await secp.sign(toSign, this.privateKey);
     }
 
     private loadKeys() {
