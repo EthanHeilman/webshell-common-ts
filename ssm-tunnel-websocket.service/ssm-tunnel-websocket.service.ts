@@ -114,18 +114,9 @@ export class SsmTunnelWebsocketService
             throw new Error(`Unknown agentId in sendOpenShellSynMessage for target ${this.targetInfo.id}`);
         }
 
-        await this.sendSynMessage({
-            synPayload: {
-                signature: '',
-                payload: {
-                    type: 'SYN',
-                    action: 'ssh/open',
-                    nonce: crypto.randomBytes(32).toString('base64'),
-                    targetId: this.targetInfo.agentId,
-                    BZECert: await this.keySplittingService.getBZECert(await this.authConfigService.getIdToken())
-                }
-            }
-        });
+        await this.sendSynMessage(await this.keySplittingService.buildSynMessage(
+            this.targetInfo.agentId, 'ssh/open', await this.authConfigService.getIdToken()
+        ));
     }
 
     private async sendOpenShellDataMessage() {
@@ -133,19 +124,9 @@ export class SsmTunnelWebsocketService
             throw new Error(`Unknown agentId in sendOpenShellDataMessage for target ${this.targetInfo.id}`);
         }
 
-        await this.sendDataMessage({
-            dataPayload: {
-                signature: '',
-                payload: {
-                    type: 'DATA',
-                    action: 'ssh/open',
-                    hPointer: 'placeholder',
-                    targetId: this.targetInfo.agentId,
-                    BZECert: await this.keySplittingService.getBZECertHash(await this.authConfigService.getIdToken()),
-                    payload: 'payload'
-                }
-            }
-        });
+        await this.sendDataMessage(await this.keySplittingService.buildDataMessage(
+            this.targetInfo.agentId, 'ssh/open', await this.authConfigService.getIdToken()
+        ));
     }
 
     private async closeConnection() {
