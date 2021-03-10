@@ -170,7 +170,7 @@ export class KeySplittingService {
     }
 
     private async signMessagePayload<T>(messagePayload: KeySplittingMessage<T>) {
-        return await this.signHelper(JSON.stringify(messagePayload.payload, Object.keys(messagePayload.payload).sort()));
+        return await this.signHelper(this.JSONstringifyOrder(messagePayload.payload));
     }
 
     private hashHelper(toHash: string) {
