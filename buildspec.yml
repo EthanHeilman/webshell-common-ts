@@ -11,6 +11,7 @@ phases:
     commands:
       - echo Install started on `date`
       - npm install -g eslint typescript @typescript-eslint/parser @typescript-eslint/eslint-plugin
+      - export NODE_PATH=$(npm root -g)
   build:
     commands:
       - echo Build started on `date`
