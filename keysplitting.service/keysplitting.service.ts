@@ -118,7 +118,7 @@ export class KeySplittingService {
     private JSONstringifyOrder(obj: any) {
         // Ref: https://stackoverflow.com/a/53593328/9186330
         let allKeys: string[] = [];
-        JSON.stringify( obj, function( key, value ){ allKeys.push( key ); return value; } )
+        JSON.stringify(obj, function (key, value) { allKeys.push(key); return value; });
         allKeys.sort();
         return JSON.stringify( obj, allKeys);
     }
