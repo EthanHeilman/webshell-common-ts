@@ -1,20 +1,20 @@
 export const ShellHubIncomingMessages = {
-    shellOutput: "ShellOutput",
-    shellDisconnect: "ShellDisconnect",
-    shellStart: "ShellStart",
-    shellDelete: "ShellDelete",
-    connectionReady: "ConnectionReady"
-}
-    
+    shellOutput: 'ShellOutput',
+    shellDisconnect: 'ShellDisconnect',
+    shellStart: 'ShellStart',
+    shellDelete: 'ShellDelete',
+    connectionReady: 'ConnectionReady'
+};
+
 export const ShellHubOutgoingMessages = {
-    shellConnect: "ShellConnect",
-    shellInput: "ShellInput",
-    shellGeometry: "ShellGeometry"
-}
+    shellConnect: 'ShellConnect',
+    shellInput: 'ShellInput',
+    shellGeometry: 'ShellGeometry'
+};
 
 export interface ShellState {
     start: boolean;
-    disconnect: boolean; 
+    disconnect: boolean;
     delete: boolean;
     ready: boolean;
 }

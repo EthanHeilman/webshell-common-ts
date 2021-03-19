@@ -2,11 +2,7 @@ import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 import { ShellHubIncomingMessages, ShellHubOutgoingMessages, ShellState } from './websocket.service.types';
 
-export interface AuthConfigService {
-    getServiceUrl: () => string;
-    getSessionId: () => string;
-    getIdToken: () => Promise<string>;
-}
+import { AuthConfigService } from '../auth-config-service/auth-config.service';
 
 // ref: https://gist.github.com/dsherret/cf5d6bec3d0f791cef00
 export interface IDisposable
@@ -27,14 +23,14 @@ export class WebsocketStream implements IDisposable
     private websocket : HubConnection;
 
     // stdout
-    private outputSubject: BehaviorSubject<string>; 
+    private outputSubject: BehaviorSubject<string>;
     public outputData: Observable<string>;
     // stdin
     private inputSubscription: Subscription;
     private resizeSubscription: Subscription;
 
     // shell state
-    private shellStateSubject: BehaviorSubject<ShellState>; 
+    private shellStateSubject: BehaviorSubject<ShellState>;
     public shellStateData: Observable<ShellState>;
 
     constructor(
@@ -44,7 +40,7 @@ export class WebsocketStream implements IDisposable
         resizeStream: BehaviorSubject<TerminalSize>
     )
     {
-        this.outputSubject = new BehaviorSubject<string>("");
+        this.outputSubject = new BehaviorSubject<string>('');
         this.outputData = this.outputSubject.asObservable();
         this.shellStateSubject = new BehaviorSubject<ShellState>({start: false, disconnect: false, delete: false, ready: false});
         this.shellStateData = this.shellStateSubject.asObservable();
@@ -89,7 +85,7 @@ export class WebsocketStream implements IDisposable
         this.websocket.on(
             ShellHubIncomingMessages.shellStart,
             () => {
-                this.shellStateSubject.next({start: true, disconnect: false, delete: false, ready: false})
+                this.shellStateSubject.next({start: true, disconnect: false, delete: false, ready: false});
             }
         );
 
