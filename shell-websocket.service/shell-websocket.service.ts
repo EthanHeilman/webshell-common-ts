@@ -132,10 +132,13 @@ export class ShellWebsocketService implements IDisposable
         const connectionUrl = `${this.authConfigService.getServiceUrl()}hub/ssh/${queryString}`;
 
         const connectionBuilder = new HubConnectionBuilder();
-        connectionBuilder.withUrl(
-            connectionUrl,
-            { accessTokenFactory: async () => await this.authConfigService.getIdToken()}
-        ).configureLogging(6); // log level 6 is no websocket logs
+        connectionBuilder
+            .withUrl(
+                connectionUrl,
+                { accessTokenFactory: async () => await this.authConfigService.getIdToken()}
+            )
+            .configureLogging(6) // log level 6 is no websocket logs
+            .withAutomaticReconnect();
         return connectionBuilder.build();
     }
 
