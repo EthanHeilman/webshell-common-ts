@@ -10,20 +10,15 @@ export class KeySplittingService {
     private config: ConfigInterface
     private data: KeySplittingConfigSchema
     private logger: ILogger;
+    private targetPublicKey: ed.Point;
+
     private publicKey: Uint8Array;
     private privateKey: Uint8Array;
-    private expectedHPointer: Buffer;
-    private currentHPointer: Buffer;
-    private targetPublicKey: ed.Point;
 
     constructor(config: ConfigInterface, logger: ILogger) {
         this.config = config;
         this.logger = logger;
         this.data = this.config.loadKeySplitting();
-
-        // Initially our expected HPointer is null
-        this.expectedHPointer = null;
-        this.currentHPointer = null;
     }
 
     public async init(): Promise<void> {
@@ -36,10 +31,6 @@ export class KeySplittingService {
         this.data.initialIdToken = latestIdToken;
         this.config.updateKeySplitting(this.data);
         this.logger.debug('Updated latestIdToken');
-    }
-
-    public getConfig(): KeySplittingConfigSchema {
-        return this.data;
     }
 
     public async getBZECert(currentIdToken: string): Promise<BZECert> {
@@ -86,26 +77,8 @@ export class KeySplittingService {
         this.logger.debug('Reset keysplitting service');
     }
 
-    public setExpectedHPointer(message: any): void {
-        // Helper function to set our expected HPointer
-        this.expectedHPointer = this.hashHelper(this.JSONstringifyOrder(message));
-    }
-
-    public setCurrentHPointer(message: any): void {
-        // Helper function to set our current HPointer
-        this.currentHPointer = this.hashHelper(this.JSONstringifyOrder(message));
-    }
-
-    public validateHPointer(hPointer: string): boolean {
-        if (this.expectedHPointer != null)
-            if (this.expectedHPointer.toString('base64') == hPointer) {
-                // Return True
-                return true;
-            } else {
-                // Else they don't equal each other, return False
-                return false;
-            }
-        throw Error('Expected HPointer is not set!');
+    public getHPointer(message: any): string {
+        return this.hashHelper(this.JSONstringifyOrder(message)).toString('base64');
     }
 
     public setTargetPublicKey(targetPublicKey: string): void {
@@ -138,16 +111,26 @@ export class KeySplittingService {
         return Buffer.from(JSON.stringify( obj, allKeys), 'utf8');
     }
 
-    public async buildDataMessage<TDataPayload>(targetId: string, action: string, currentIdToken: string, payload: TDataPayload): Promise<DataMessageWrapper> {
+    private encodeDataPayload(payload: any) {
+        if(typeof payload === 'string') {
+            return payload;
+        } else if(typeof payload === 'object') {
+            return this.JSONstringifyOrder(payload).toString('utf8');
+        } else {
+            throw new Error(`Unhandled payload type ${typeof payload}`);
+        }
+    }
+
+    public async buildDataMessage<TDataPayload>(targetId: string, action: string, currentIdToken: string, payload: TDataPayload, hPointer: string): Promise<DataMessageWrapper> {
         // Build our payload
         const dataMessage = {
             payload: {
                 type: 'DATA',
                 action: action,
-                hPointer: this.currentHPointer.toString('base64'),
+                hPointer: hPointer,
                 targetId: targetId,
                 BZECert: await this.getBZECertHash(currentIdToken),
-                payload: this.JSONstringifyOrder(payload).toString('utf8')
+                payload: this.encodeDataPayload(payload)
             },
             signature: ''
         };
