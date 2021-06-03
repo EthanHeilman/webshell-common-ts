@@ -1,4 +1,5 @@
 import { Observable, Subject } from 'rxjs';
+import * as ed from 'noble-ed25519';
 import { timeout } from 'rxjs/operators';
 import { ShellEventType, ShellHubIncomingMessages, ShellHubOutgoingMessages, TerminalSize } from './shell-websocket.service.types';
 import { BaseShellWebsocketService } from './base-shell-websocket.service';
@@ -48,6 +49,7 @@ export class SsmShellWebsocketService extends BaseShellWebsocketService
     private isActiveClient = false;
 
     private currentIdToken: string = undefined;
+    private targetPublicKey: ed.Point;
 
     constructor(
         private keySplittingService: KeySplittingService,
@@ -277,10 +279,11 @@ export class SsmShellWebsocketService extends BaseShellWebsocketService
             }
 
             // For out SynAck message we need to set the public key of the target
-            this.keySplittingService.setTargetPublicKey(synAckMessage.synAckPayload.payload.targetPublicKey);
+            const pubkey = synAckMessage.synAckPayload.payload.targetPublicKey;
+            this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
 
             // Validate our signature
-            if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload) != true) {
+            if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
                 const errorString = '[SynAck] Error Validating Signature!';
                 this.logger.error(errorString);
                 throw new Error(errorString);
@@ -332,7 +335,7 @@ export class SsmShellWebsocketService extends BaseShellWebsocketService
         }
 
         // Validate our signature
-        if (! await this.keySplittingService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload)) {
+        if (! await this.keySplittingService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey)) {
             const errorString = '[DataAck] Error Validating Signature!';
             this.logger.error(errorString);
             throw new Error(errorString);

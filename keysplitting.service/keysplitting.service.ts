@@ -10,7 +10,6 @@ export class KeySplittingService {
     private config: ConfigInterface
     private data: KeySplittingConfigSchema
     private logger: ILogger;
-    private targetPublicKey: ed.Point;
 
     private publicKey: Uint8Array;
     private privateKey: Uint8Array;
@@ -81,19 +80,15 @@ export class KeySplittingService {
         return this.hashHelper(this.JSONstringifyOrder(message)).toString('base64');
     }
 
-    public setTargetPublicKey(targetPublicKey: string): void {
-        this.targetPublicKey = ed.Point.fromHex(Buffer.from(targetPublicKey, 'base64').toString('hex'));
-    }
-
-    public async validateSignature<T>(message: KeySplittingMessage<T>): Promise<boolean> {
-        if (this.targetPublicKey == undefined) {
+    public async validateSignature<T>(message: KeySplittingMessage<T>, targetPublicKey: ed.Point): Promise<boolean> {
+        if (targetPublicKey == undefined) {
             throw new Error('Error validating message! Target Public Key is undefined!');
         }
 
         // Validate the signature
         const toValidate: Buffer = this.hashHelper(this.JSONstringifyOrder(message.payload));
         const signature: Buffer = Buffer.from(message.signature, 'base64');
-        if (await ed.verify(signature, toValidate, this.targetPublicKey)) {
+        if (await ed.verify(signature, toValidate, targetPublicKey)) {
             return true;
         }
         return false;
