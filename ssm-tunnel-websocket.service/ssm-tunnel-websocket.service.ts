@@ -1,4 +1,5 @@
 import SshPK from 'sshpk';
+import * as ed from 'noble-ed25519';
 import { Observable, Subject } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
@@ -20,6 +21,7 @@ export class SsmTunnelWebsocketService
     private errorSubject: Subject<string> = new Subject<string>();
     private username: string;
     private sshPublicKey: SshPK.Key;
+    private targetPublicKey: ed.Point;
 
     private keysplittingHandshakeCompleteSubject = new Subject<boolean>();
     private keysplittingHandshakeComplete: Observable<boolean> = this.keysplittingHandshakeCompleteSubject.asObservable();
@@ -231,10 +233,11 @@ export class SsmTunnelWebsocketService
                 }
 
                 // For out SynAck message we need to set the public key of the target
-                this.keySplittingService.setTargetPublicKey(synAckMessage.synAckPayload.payload.targetPublicKey);
+                const pubkey = synAckMessage.synAckPayload.payload.targetPublicKey;
+                this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
 
                 // Validate our signature
-                if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload) != true) {
+                if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
                     const errorString = '[SynAck] Error Validating Signature!';
                     this.logger.error(errorString);
                     throw new Error(errorString);
@@ -260,7 +263,7 @@ export class SsmTunnelWebsocketService
                 }
 
                 // Validate our signature
-                if (await this.keySplittingService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload) != true) {
+                if (await this.keySplittingService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey) != true) {
                     const errorString = '[DataAck] Error Validating Signature!';
                     this.logger.error(errorString);
                     throw new Error(errorString);
