@@ -120,6 +120,11 @@ export enum ShellActions {
     Resize = 'shell/resize'
 }
 
+export enum FudActions {
+    Download = 'fud/download',
+    Upload = 'fud/upload'
+}
+
 export interface ShellTerminalSizeActionPayload {
     rows: number;
     cols: number;
