@@ -6,4 +6,13 @@ export default class Utils {
         allKeys.sort();
         return Buffer.from(JSON.stringify(obj, allKeys), 'utf8');
     }
+
+    static isAgentVersionAtLeast(agentVersion: string, version: number): boolean {
+        try {
+            const lastNumber = parseInt(agentVersion.split('.')[3]);
+            return lastNumber >= version;
+        } catch (err) {
+            return false;
+        }
+    }
 }

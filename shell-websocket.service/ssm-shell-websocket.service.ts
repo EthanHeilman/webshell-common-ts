@@ -8,6 +8,7 @@ import { AuthConfigService } from '../auth-config-service/auth-config.service';
 import { ILogger } from '../logging/logging.types';
 import { KeySplittingService } from '../keysplitting.service/keysplitting.service';
 import { DataAckMessageWrapper, DataAckPayload, DataMessageWrapper, ErrorMessageWrapper, ShellActions, ShellTerminalSizeActionPayload, SsmTargetInfo, SynAckMessageWrapper, SynAckPayload, SynMessageWrapper, KeysplittingErrorTypes } from '../keysplitting.service/keysplitting-types';
+import Utils from 'webshell-common-ts/utility/utils';
 
 interface ShellMessage {
     inputType: ShellActions,
@@ -19,12 +20,7 @@ interface ShellMessage {
 const KeysplittingMinimumAgentVersion = 16;
 
 export function isAgentKeysplittingReady(agentVersion: string): boolean {
-    try {
-        const version = parseInt(agentVersion.split('.')[3]);
-        return version >= KeysplittingMinimumAgentVersion;
-    } catch(err) {
-        return false;
-    }
+    return Utils.isAgentVersionAtLeast(agentVersion, KeysplittingMinimumAgentVersion);
 }
 
 const KeysplittingHandshakeTimeout = 45; // in seconds
