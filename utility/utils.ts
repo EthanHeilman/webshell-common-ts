@@ -15,4 +15,23 @@ export default class Utils {
             return false;
         }
     }
+
+    static promiseTimeout<Type>(ms: number, promise: Promise<Type>): Promise<Type> {
+        // Source:
+        // https://italonascimento.github.io/applying-a-timeout-to-your-promises/
+
+        // Create a promise that rejects in <ms> milliseconds
+        const timeout = new Promise((_, reject) => {
+            const id = setTimeout(() => {
+                clearTimeout(id);
+                reject('Timed out in ' + ms + 'ms.');
+            }, ms);
+        });
+
+        return new Promise((res, rej) => {
+            Promise.race([promise, timeout])
+                .then(value => res(value as Type))
+                .catch(error => rej(error));
+        });
+    }
 }
