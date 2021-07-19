@@ -84,25 +84,28 @@ export interface ErrorMessageWrapper {
 
 // Should be kept in sync with agent error types from
 // https://github.com/bastionzero/bzero-ssm-agent/blob/d5fac61c89b3b2af90faf2a3eec07e55ae123583/agent/keysplitting/contracts/model.go#L117-L133
-// Updated as of agent version 3.0.732.16
+// Updated as of agent version 3.0.732.21
 export enum KeysplittingErrorTypes {
     BZECertInvalidIDToken        = 'BZECertInvalidIDToken',
-	BZECertInvalidNonce          = 'BZECertInvalidNonce',
-	BZECertUnrecognized          = 'BZECertUnrecognized',
-	BZECertInvalidProvider       = 'BZECertProviderError',
-	BZECertExpired               = 'BZECertExpired',
-	HPointerError                = 'HPointerError',
-	SigningError                 = 'SigningError',
-	SignatureVerificationError   = 'SignatureVerificationError',
-	TargetIdInvalid              = 'TargetIdInvalid',
-	HashingError                 = 'HashingError',
-	KeysplittingActionError      = 'KeysplittingActionError',
-	InvalidPayload               = 'InvalidPayload',
-	Unknown                      = 'Unknown',
-	ChannelClosed                = 'ChannelClosed',
-	OutdatedHPointer             = 'OutdatedHPointer',
+    BZECertInvalidNonce          = 'BZECertInvalidNonce',
+    BZECertUnrecognized          = 'BZECertUnrecognized',
+    BZECertInvalidProvider       = 'BZECertProviderError',
+    BZECertExpired               = 'BZECertExpired',
+    HPointerError                = 'HPointerError',
+    SigningError                 = 'SigningError',
+    SignatureVerificationError   = 'SignatureVerificationError',
+    TargetIdInvalid              = 'TargetIdInvalid',
+    HashingError                 = 'HashingError',
+    KeysplittingActionError      = 'KeysplittingActionError',
+    InvalidPayload               = 'InvalidPayload',
+    Unknown                      = 'Unknown',
+    ChannelClosed                = 'ChannelClosed',
+    OutdatedHPointer             = 'OutdatedHPointer',
     BZECertExpiredInitialIdToken = 'BZECertExpiredInitialIdToken',
-    HandlerNotReady              = 'HandlerNotReady'
+    HandlerNotReady              = 'HandlerNotReady',
+    FUDFileDoesNotExist          = 'FUDFileDoesNotExist',
+    FUDUserDoesNotHavePermission = 'FUDUserDoesNotHavePermission',
+    FUDInvalidDestinationPath    = 'FUDInvalidDestinationPath'
 }
 
 export enum SshTunnelActions {
@@ -118,6 +121,11 @@ export enum ShellActions {
     Open = 'shell/open',
     Input = 'shell/input',
     Resize = 'shell/resize'
+}
+
+export enum FudActions {
+    Download = 'fud/download',
+    Upload = 'fud/upload'
 }
 
 export interface ShellTerminalSizeActionPayload {

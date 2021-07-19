@@ -5,6 +5,7 @@ import * as CryptoJS from 'crypto-js';
 import { ILogger } from '../logging/logging.types';
 import { ConfigInterface, KeySplittingConfigSchema } from './keysplitting.service.types';
 import { BZECert, DataMessageWrapper, SynMessageWrapper, KeySplittingMessage, SynMessagePayload, DataMessagePayload } from './keysplitting-types';
+import Utils from 'webshell-common-ts/utility/utils';
 
 export class KeySplittingService {
     private config: ConfigInterface
@@ -46,7 +47,7 @@ export class KeySplittingService {
 
     public async getBZECertHash(currentIdToken: string): Promise<string> {
         const BZECert = await this.getBZECert(currentIdToken);
-        return this.hashHelper(this.JSONstringifyOrder(BZECert)).toString('base64');
+        return this.hashHelper(Utils.JSONstringifyOrder(BZECert)).toString('base64');
     }
 
     public async generateCerRand(): Promise<void> {
@@ -77,7 +78,7 @@ export class KeySplittingService {
     }
 
     public getHPointer(message: any): string {
-        return this.hashHelper(this.JSONstringifyOrder(message)).toString('base64');
+        return this.hashHelper(Utils.JSONstringifyOrder(message)).toString('base64');
     }
 
     public async validateSignature<T>(message: KeySplittingMessage<T>, targetPublicKey: ed.Point): Promise<boolean> {
@@ -86,7 +87,7 @@ export class KeySplittingService {
         }
 
         // Validate the signature
-        const toValidate: Buffer = this.hashHelper(this.JSONstringifyOrder(message.payload));
+        const toValidate: Buffer = this.hashHelper(Utils.JSONstringifyOrder(message.payload));
         const signature: Buffer = Buffer.from(message.signature, 'base64');
         if (await ed.verify(signature, toValidate, targetPublicKey)) {
             return true;
@@ -98,19 +99,11 @@ export class KeySplittingService {
         this.config.removeKeySplitting();
     }
 
-    private JSONstringifyOrder(obj: any): Buffer {
-        // Ref: https://stackoverflow.com/a/53593328/9186330
-        const allKeys: string[] = [];
-        JSON.stringify(obj, function (key, value) { allKeys.push(key); return value; });
-        allKeys.sort();
-        return Buffer.from(JSON.stringify( obj, allKeys), 'utf8');
-    }
-
     private encodeDataPayload(payload: any) {
         if(typeof payload === 'string') {
             return payload;
         } else if(typeof payload === 'object') {
-            return this.JSONstringifyOrder(payload).toString('utf8');
+            return Utils.JSONstringifyOrder(payload).toString('utf8');
         } else {
             throw new Error(`Unhandled payload type ${typeof payload}`);
         }
@@ -164,7 +157,7 @@ export class KeySplittingService {
     }
 
     private async signMessagePayload<T>(messagePayload: KeySplittingMessage<T>): Promise<string> {
-        return this.signHelper(this.JSONstringifyOrder(messagePayload.payload));
+        return this.signHelper(Utils.JSONstringifyOrder(messagePayload.payload));
     }
 
     private hashHelper(toHash: Buffer): Buffer {
