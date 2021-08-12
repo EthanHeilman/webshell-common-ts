@@ -1,12 +1,15 @@
 import { Observable } from 'rxjs';
+import { SsmTargetInfo } from '../keysplitting.service/keysplitting-types';
 import { IDisposableAsync } from '../utility/disposable';
 
 export interface IShellWebsocketService extends IDisposableAsync{
     start() : Promise<void>;
 
-    // Terminal dimensions provided in the shell connect are only used by ssh
-    // and non-keysplitting ssm shells where terminal size is set from the
-    // backend. Keysplitting ssm shells must send a separate resize input event
+    updateTargetInfo(targetInfo: SsmTargetInfo): void;
+
+    // Terminal dimensions provided in the shell connect are only used for the
+    // virtual terminal emulator for command extraction. Keysplitting shells
+    // must send a separate resize input event
     sendShellConnect(rows: number, cols: number, replayOutput: boolean): void;
 
     sendReplayDone(rows: number, cols: number): void;
