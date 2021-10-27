@@ -8,8 +8,8 @@ import { BZECert, DataMessageWrapper, SynMessageWrapper, KeySplittingMessage, Sy
 import Utils from '../utility/utils';
 
 export class KeySplittingService {
-    private config: ConfigInterface
-    private data: KeySplittingConfigSchema
+    private config: ConfigInterface;
+    private data: KeySplittingConfigSchema;
     private logger: ILogger;
 
     private publicKey: Uint8Array;
