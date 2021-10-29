@@ -91,6 +91,10 @@ export class ShellWebsocketService
         this.targetInfo = targetInfo;
     }
 
+    public getConnectionNodeId() : string {
+        return this.connectionNodeId;
+    }
+
     public async start()
     {
         this.websocket = await this.createConnection();

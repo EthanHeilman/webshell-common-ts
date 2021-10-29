@@ -16,6 +16,8 @@ export interface IShellWebsocketService extends IDisposableAsync{
 
     shellReattach() : Promise<void>;
 
+    getConnectionNodeId() : string;
+
     outputData: Observable<string>;
     replayData: Observable<string>;
     shellEventData: Observable<ShellEvent>;
