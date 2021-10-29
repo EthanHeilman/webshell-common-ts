@@ -205,8 +205,7 @@ export class ShellWebsocketService
         const queryString = `?connectionId=${this.connectionId}&authToken=${this.connectionNodeAuthToken}`;
 
         // Construct custom connection url based on service url
-        const bastionUrl = new URL(this.authConfigService.getServiceUrl());
-        const connectionServiceUrl = bastionUrl.href.split('.bastionzero.com')[0] + '-connect.bastionzero.com/' + this.connectionNodeId + '/';
+        const connectionServiceUrl = Utils.getConnectionNodeUrl(this.authConfigService.getServiceUrl(), this.connectionNodeId);
 
         const connectionUrl = `${connectionServiceUrl}hub/shell/${queryString}`;
 

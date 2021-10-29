@@ -34,4 +34,10 @@ export default class Utils {
                 .catch(error => rej(error));
         });
     }
+
+    static getConnectionNodeUrl(bastionServiceUrl: string, connectionNodeId: string) : string {
+        const bastionUrl = new URL(bastionServiceUrl);
+        const connectionServiceUrl = bastionUrl.href.split('.bastionzero.com')[0] + '-connect.bastionzero.com/' + connectionNodeId + '/';
+        return connectionServiceUrl;
+    }
 }
