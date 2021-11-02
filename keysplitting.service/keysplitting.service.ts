@@ -6,6 +6,7 @@ import { ILogger } from '../logging/logging.types';
 import { ConfigInterface, KeySplittingConfigSchema } from './keysplitting.service.types';
 import { BZECert, DataMessageWrapper, SynMessageWrapper, KeySplittingMessage, SynMessagePayload, DataMessagePayload } from './keysplitting-types';
 import Utils from '../utility/utils';
+import { MetricsCollectionService } from '../metrics/metrics-collection.service';
 
 export class KeySplittingService {
     private config: ConfigInterface;
@@ -15,7 +16,7 @@ export class KeySplittingService {
     private publicKey: Uint8Array;
     private privateKey: Uint8Array;
 
-    constructor(config: ConfigInterface, logger: ILogger) {
+    constructor(config: ConfigInterface, logger: ILogger, private metricsService: MetricsCollectionService = null) {
         this.config = config;
         this.logger = logger;
         this.data = this.config.loadKeySplitting();
@@ -161,16 +162,22 @@ export class KeySplittingService {
     }
 
     private hashHelper(toHash: Buffer): Buffer {
+        this.metricsService.startTimerForFunction('hashHelper');
         // Helper function to hash a string for us
         const hashClient = new SHA3(256);
         hashClient.update(toHash);
-        return hashClient.digest();
+        const h = hashClient.digest();
+        this.metricsService.stopTimerForFunction('hashHelper');
+        return h;
     }
 
     private async signHelper(toSign: Buffer): Promise<string> {
         // Helper function to sign a string for us
         const hashedSign = this.hashHelper(toSign);
-        return Buffer.from(await ed.sign(hashedSign, this.privateKey)).toString('base64');
+        this.metricsService.startTimerForFunction('signHelper');
+        let sig = await ed.sign(hashedSign, this.privateKey);
+        this.metricsService.stopTimerForFunction('signHelper');
+        return Buffer.from(sig).toString('base64');
     }
 
     private async loadKeys(): Promise<void> {

@@ -10,6 +10,7 @@ import { DataAckMessageWrapper, DataAckPayload, DataMessageWrapper, ErrorMessage
 import Utils from '../utility/utils';
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { SignalRLogger } from '../logging/signalr-logger';
+import { MetricsCollectionService } from '../../webshell-common-ts/metrics/metrics-collection.service';
 
 interface ShellMessage {
     inputType: ShellActions,
@@ -66,6 +67,7 @@ export class ShellWebsocketService
 
     constructor(
         private keySplittingService: KeySplittingService,
+        private metricService: MetricsCollectionService,
         private targetInfo: SsmTargetInfo,
         private logger: ILogger,
         private authConfigService: AuthConfigService,
@@ -112,6 +114,8 @@ export class ShellWebsocketService
             req =>
             {
                 // ref: https://git.coolaj86.com/coolaj86/atob.js/src/branch/master/node-atob.js
+                this.metricService.startTimerForFunction('total-output-processing');
+                this.metricService.stopTimerForFunction('connection-node-websocket');
                 this.outputSubject.next(req.data);
             }
         );
@@ -370,6 +374,8 @@ export class ShellWebsocketService
     }
 
     private async sendShellInputDataMessage(input: ShellMessage) {
+        this.metricService.startTimerForFunction('sendShellInputDataMessage');
+
         // Check whether current BZCert's idtoken has been refreshed
         // If yes we need to perform a new handshake before sending data
         const IdToken = await this.authConfigService.getIdToken();
@@ -394,6 +400,10 @@ export class ShellWebsocketService
 
         const hPointer = this.keySplittingService.getHPointer(dataMessage.dataPayload.payload);
         this.outgoingShellInputMessages[hPointer] = input;
+        
+        this.metricService.stopTimerForFunction('sendShellInputDataMessage');
+        this.metricService.stopTimerForFunction('total-input-processing');
+        this.metricService.startTimerForFunction('connection-node-websocket');
 
         await this.sendDataMessage(dataMessage);
     }
