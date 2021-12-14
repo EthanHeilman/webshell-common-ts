@@ -1,4 +1,4 @@
-import { TargetStatus } from '../types/target-status.types';
+import { TargetStatus } from './target-status.types';
 
  export interface SsmTargetSummary { 
      id: string;
