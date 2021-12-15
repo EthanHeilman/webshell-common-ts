@@ -1,6 +1,6 @@
 import { TargetSummary } from '../../target/types/target-summary.types';
 
- export interface EnvironmentSummary { 
+export interface EnvironmentSummary {
      id : string;
      organizationId : string;
      isDefault : boolean;

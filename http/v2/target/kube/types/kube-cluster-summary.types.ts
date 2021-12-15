@@ -1,6 +1,6 @@
 import { AgentStatus } from './agent-status.types';
 
- export interface KubeClusterSummary { 
+export interface KubeClusterSummary {
      id: string;
      clusterName: string;
      status: AgentStatus;

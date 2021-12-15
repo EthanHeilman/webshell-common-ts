@@ -1,6 +1,6 @@
 import { SubjectType } from '../../common.types/subject.types';
 
- export interface UserEventDataMessage { 
+export interface UserEventDataMessage {
      id: string;
      organizationId: string;
      subjectId: string;

@@ -1,6 +1,6 @@
 import { ConnectionType } from '../../connection/types/connection.types';
 
- export interface ConnectionsToOpen { 
+export interface ConnectionsToOpen {
      targetId: string;
      connectionType: ConnectionType;
      targetUser: string;

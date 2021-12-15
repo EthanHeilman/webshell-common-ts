@@ -1,7 +1,7 @@
 import { ConnectionState } from './connection-state.types';
- import { ConnectionType } from './connection.types';
- 
- export interface ConnectionSummary { 
+import { ConnectionType } from './connection.types';
+
+export interface ConnectionSummary {
      id: string;
      timeCreated : Date;
      sessionId : string;

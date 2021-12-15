@@ -1,9 +1,8 @@
+import { ConnectionType } from '../../connection/types/connection.types';
+import { SubjectType } from '../../common.types/subject.types';
+import { ConnectionEventType } from '../types/connection-event.types';
 
- import { ConnectionEventType } from './types/connection-event.types';
- import { ConnectionType } from '../../connection/types/connection.types';
- import { SubjectType } from '../../common.types/subject.types';
- 
- export interface ConnectionEventFilterRequest { 
+export interface ConnectionEventFilterRequest {
      subjectIds?: string[];
      subjectTypes?: SubjectType[];
      userNames?: string[];

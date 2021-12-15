@@ -1,4 +1,4 @@
-export interface AddNewAgentRequest { 
+export interface AddNewAgentRequest {
     clusterName: string;
     environmentId?: string;
     /**

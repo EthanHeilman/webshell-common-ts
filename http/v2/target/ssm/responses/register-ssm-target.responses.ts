@@ -1,4 +1,4 @@
-export interface RegisterSsmTargetResponse { 
+export interface RegisterSsmTargetResponse {
     activationId: string;
     activationCode: string;
     activationRegion: string;

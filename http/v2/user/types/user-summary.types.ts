@@ -1,4 +1,4 @@
-export interface UserSummary { 
+export interface UserSummary {
     id: string;
     organizationId: string;
     fullName: string;

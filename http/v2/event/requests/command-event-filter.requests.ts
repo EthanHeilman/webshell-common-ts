@@ -1,7 +1,7 @@
 import { ConnectionType } from '../../connection/types/connection.types';
- import { SubjectType } from '../../common.types/subject.types';
- 
- export interface CommandEventFilterRequest { 
+import { SubjectType } from '../../common.types/subject.types';
+
+export interface CommandEventFilterRequest {
      subjectIds?: string[];
      subjectTypes?: SubjectType;
      userNames?: string[];

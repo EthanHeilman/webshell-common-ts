@@ -1,4 +1,4 @@
-export interface KubeGetAgentYamlResponse { 
+export interface KubeGetAgentYamlResponse {
     yaml: string;
     activationToken: string;
 }

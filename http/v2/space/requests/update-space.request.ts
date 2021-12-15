@@ -1,3 +1,3 @@
-export interface UpdateSpaceRequest { 
+export interface UpdateSpaceRequest {
     terminalPreferences: string;
 }

@@ -1,3 +1,3 @@
-export interface CreateSpaceResponse { 
+export interface CreateSpaceResponse {
     spaceId: string;
 }

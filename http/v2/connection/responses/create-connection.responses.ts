@@ -1,3 +1,3 @@
-export interface CreateConnectionResponse { 
+export interface CreateConnectionResponse {
     connectionId: string;
 }

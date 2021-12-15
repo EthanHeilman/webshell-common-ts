@@ -1,4 +1,4 @@
-export interface OrganizationRegistrationKeySettingSummary { 
+export interface OrganizationRegistrationKeySettingSummary {
     globalRegistrationKeyEnforced: boolean;
     defaultGlobalRegistrationKey: string;
 }

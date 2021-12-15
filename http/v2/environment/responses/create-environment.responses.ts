@@ -1,3 +1,3 @@
-export interface CreateEnvironmentResponse { 
+export interface CreateEnvironmentResponse {
     id: string;
 }
