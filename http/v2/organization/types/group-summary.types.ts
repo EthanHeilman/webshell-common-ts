@@ -1,4 +1,4 @@
-export interface GroupSummary { 
+export interface GroupSummary {
     idPGroupId: string;
     name: string;
 }

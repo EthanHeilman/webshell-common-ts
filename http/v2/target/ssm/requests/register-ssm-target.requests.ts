@@ -1,4 +1,4 @@
-export interface RegisterSsmTargetRequest { 
+export interface RegisterSsmTargetRequest {
     registrationId: string;
     registrationSecret: string;
     instanceName: string;

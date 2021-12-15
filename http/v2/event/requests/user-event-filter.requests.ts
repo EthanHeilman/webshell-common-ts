@@ -1,6 +1,6 @@
 import { SubjectType } from '../../common.types/subject.types';
 
- export interface UserEventFilterRequest { 
+export interface UserEventFilterRequest {
      subjectIds?: string[];
      subjectTypes?: SubjectType[];
      userNames?: string[];

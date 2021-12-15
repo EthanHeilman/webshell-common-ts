@@ -1,3 +1,3 @@
-export interface RegisterDynamicAccessConfigResponse { 
+export interface RegisterDynamicAccessConfigResponse {
     id: string;
 }

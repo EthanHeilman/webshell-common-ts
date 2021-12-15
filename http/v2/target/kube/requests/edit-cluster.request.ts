@@ -1,4 +1,4 @@
-export interface EditClusterRequest { 
+export interface EditClusterRequest {
     clusterName?: string;
     environmentId?: string;
 }

@@ -1,6 +1,6 @@
 import { SubjectType } from '../../common.types/subject.types';
 
- export interface CommandEventDataMessage { 
+export interface CommandEventDataMessage {
      id: string;
      connectionId: string;
      targetId: string;

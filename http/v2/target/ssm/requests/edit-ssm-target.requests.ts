@@ -1,4 +1,4 @@
-export interface EditSsmTargetRequest { 
+export interface EditSsmTargetRequest {
     name: string;
     environmentId?: string;
 }

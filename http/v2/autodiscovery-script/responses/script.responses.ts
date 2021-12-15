@@ -1,3 +1,3 @@
-export interface ScriptResponse { 
+export interface ScriptResponse {
     autodiscoveryScript: string;
 }

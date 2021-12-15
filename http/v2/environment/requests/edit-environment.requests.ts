@@ -1,4 +1,4 @@
-export interface EditEnvironmentRequest { 
+export interface EditEnvironmentRequest {
     description?: string;
     offlineCleanupTimeoutHours?: number;
 }

@@ -1,4 +1,4 @@
-export interface RegisterDynamicAccessConfigRequest { 
+export interface RegisterDynamicAccessConfigRequest {
     name: string;
     startWebhook: string;
     stopWebhook: string;

@@ -1,4 +1,4 @@
-export interface DynamicAccessConfigSummary { 
+export interface DynamicAccessConfigSummary {
     id: string;
     name: string;
     environmentId: string;

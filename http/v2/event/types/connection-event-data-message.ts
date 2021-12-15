@@ -1,7 +1,7 @@
 import { ConnectionEventType } from './connection-event.types';
- import { SubjectType } from '../../common.types/subject.types';
- 
- export interface ConnectionEventDataMessage { 
+import { SubjectType } from '../../common.types/subject.types';
+
+export interface ConnectionEventDataMessage {
      id: string;
      connectionId: string;
      subjectId: string;

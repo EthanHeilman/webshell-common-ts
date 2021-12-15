@@ -1,6 +1,6 @@
 import { KubeEventData } from './kube-event-data.types';
 
- export interface KubeEventDataMessage { 
+export interface KubeEventDataMessage {
      id: string;
      creationDate: Date;
      role: string;

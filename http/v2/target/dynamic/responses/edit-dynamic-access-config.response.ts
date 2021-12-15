@@ -1,3 +1,3 @@
-export interface EditDynamicAccessConfigResponse { 
+export interface EditDynamicAccessConfigResponse {
     id: string;
 }
