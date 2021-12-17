@@ -1,4 +1,4 @@
-import { ConnectionType } from '../../connection/types/connection.types';
+import { TargetType } from 'http/v2/target/types/target.types';
 import { SubjectType } from '../../common.types/subject.types';
 
 export interface CommandEventFilterRequest {
@@ -15,7 +15,7 @@ export interface CommandEventFilterRequest {
      sessionNames?: string[];
      targetIds?: string[];
      targetNames?: string[];
-     targetTypes?: ConnectionType[];
+     targetTypes?: TargetType[];
      targetUsers?: string[];
      commandSearch?: string;
  }

@@ -1,9 +1,9 @@
-import { ConnectionType } from '../types/connection.types';
+import { TargetType } from "http/v2/target/types/target.types";
 
 export interface CreateConnectionRequest {
      spaceId: string;
      targetId: string;
-     connectionType: ConnectionType;
+     targetType: TargetType;
      /**
       * The operating system user that will be used to connect as
       */

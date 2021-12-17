@@ -1,12 +1,12 @@
+import { TargetType } from 'http/v2/target/types/target.types';
 import { ConnectionState } from '../../connection/types/connection-state.types';
-import { ConnectionType } from '../../connection/types/connection.types';
 
 export interface SessionRecordingSummary {
      connectionId: string;
      timeCreated: Date;
      connectionState: ConnectionState;
      targetId: string;
-     targetType: ConnectionType;
+     targetType: TargetType;
      targetUser: string;
      inputRecorded: boolean;
      subjectId: string;

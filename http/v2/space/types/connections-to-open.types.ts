@@ -1,7 +1,8 @@
-import { ConnectionType } from '../../connection/types/connection.types';
+import { TargetType } from "../../target/types/target.types";
+
 
 export interface ConnectionsToOpen {
      targetId: string;
-     connectionType: ConnectionType;
+     targetType: TargetType;
      targetUser: string;
  }
