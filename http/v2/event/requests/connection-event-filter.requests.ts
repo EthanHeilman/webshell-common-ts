@@ -1,5 +1,6 @@
-import { TargetType } from 'http/v2/target/types/target.types';
+
 import { SubjectType } from '../../common.types/subject.types';
+import { TargetType } from '../../target/types/target.types';
 import { ConnectionEventType } from '../types/connection-event.types';
 
 export interface ConnectionEventFilterRequest {

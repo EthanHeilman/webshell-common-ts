@@ -1,5 +1,6 @@
-import { TargetUser } from 'http/v2/policy/types/target-user.types';
-import { Verb } from 'http/v2/policy/types/verb.types';
+import { TargetUser } from "../../policy/types/target-user.types";
+import { Verb } from "../../policy/types/verb.types";
+
 
 export interface TargetPolicyQueryResponse
 {

@@ -1,4 +1,5 @@
-import { SubjectType } from 'http/v2/common.types/subject.types';
+import { SubjectType } from "../../common.types/subject.types";
+
 
 
 export interface Subject {
