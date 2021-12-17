@@ -1,4 +1,5 @@
-import { TargetType } from "http/v2/target/types/target.types";
+import { TargetType } from "../../target/types/target.types";
+
 
 export interface CreateConnectionRequest {
      spaceId: string;

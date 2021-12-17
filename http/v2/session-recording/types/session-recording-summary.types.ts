@@ -1,5 +1,6 @@
-import { TargetType } from 'http/v2/target/types/target.types';
+
 import { ConnectionState } from '../../connection/types/connection-state.types';
+import { TargetType } from '../../target/types/target.types';
 
 export interface SessionRecordingSummary {
      connectionId: string;
