@@ -1,4 +1,4 @@
-import { ConnectionType } from '../../connection/types/connection.types';
+import { TargetType } from 'http/v2/target/types/target.types';
 import { SubjectType } from '../../common.types/subject.types';
 import { ConnectionEventType } from '../types/connection-event.types';
 
@@ -16,7 +16,7 @@ export interface ConnectionEventFilterRequest {
      sessionNames?: string[];
      targetIds?: string[];
      targetNames?: string[];
-     targetTypes?: ConnectionType[];
+     targetTypes?: TargetType[];
      targetUsers?: string[];
      connectionEventTypes?: ConnectionEventType[];
  }

@@ -1,5 +1,5 @@
 export enum TargetType {
-     SsmTarget = 'SsmTarget',
-     DynamicAccessConfig = 'DynamicAccessConfig',
-     Cluster = 'Cluster'
- };
+    SsmTarget = 'SsmTarget',
+    DynamicAccessConfig = 'DynamicAccessConfig',
+    Cluster = 'Cluster'
+};
