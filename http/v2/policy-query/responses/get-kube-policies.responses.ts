@@ -1,5 +1,5 @@
-import { PolicySummary } from '../../../../../src/services/v1/policy/policy.types';
+import { KubeTunnelPolicySummary } from '../../policy/kubernetes-tunnel/types/kube-tunnel-policy-summary.types';
 
 export interface GetKubePoliciesResponse {
-    policies: PolicySummary[]
+    kubeTunnelPolicies: KubeTunnelPolicySummary[]
 }
