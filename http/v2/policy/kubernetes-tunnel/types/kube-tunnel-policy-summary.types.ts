@@ -4,7 +4,7 @@ import { ClusterUser } from '../../types/cluster-user.types';
 import { Cluster } from '../../types/cluster.types';
 import { Environment } from '../../types/environment.types';
 export interface KubeTunnelPolicySummary extends BasePolicySummary {
-     type: "KubernetesTunnel";
+     type: 'KubernetesTunnel';
      /**
       * Environments this policy applies to.
       */

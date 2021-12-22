@@ -5,7 +5,7 @@ import { Target } from '../../types/target.types';
 import { Verb } from '../../types/verb.types';
 
 export interface TargetConnectPolicySummary extends BasePolicySummary {
-     type: "TargetConnect"
+     type: 'TargetConnect'
      /**
       * Environments this policy applies to.
       */

@@ -1,6 +1,6 @@
-import { Group } from "./group.types";
-import { Subject } from "./subject.types";
-import { PolicyType } from "./policy-type.types";
+import { Group } from './group.types';
+import { Subject } from './subject.types';
+import { PolicyType } from './policy-type.types';
 
 export interface BasePolicySummary {
     /**
