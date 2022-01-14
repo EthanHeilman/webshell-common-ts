@@ -53,13 +53,19 @@ export class SsmTunnelWebsocketService
             this.username = username;
             this.sshPublicKey = sshPublicKey;
 
+            this.logger.error("111")
+
             await this.setupWebsocket();
+
+            this.logger.error("222")
 
             await this.sendStartTunnelMessage({
                 targetId: this.targetInfo.id,
                 targetPort: port,
                 targetUser: username
             });
+
+            this.logger.error("333")
 
             if((this.targetInfo.agentVersion != '' && this.targetInfo.agentVersion != 'Unknown')  && keysplittingEnabled) {
                 // If keysplitting is enabled start the keysplitting handshake
@@ -304,6 +310,8 @@ export class SsmTunnelWebsocketService
         const queryString = `?session_id=${this.authConfigService.getSessionId()}`;
         const connectionUrl = `${this.authConfigService.getServiceUrl()}hub/ssm-tunnel/${queryString}`;
 
+        this.logger.error("2222")
+        this.logger.error(await this.authConfigService.getIdToken())
         const connectionBuilder = new HubConnectionBuilder();
         connectionBuilder
             .withUrl(
@@ -316,8 +324,10 @@ export class SsmTunnelWebsocketService
 
     private async startWebsocket()
     {
+        this.logger.error("1111")
         this.websocket = await this.createConnection();
         await this.websocket.start();
+        this.logger.error("3333")
     }
 
     private async sendStartTunnelMessage(startTunnelMessage: StartTunnelMessage) {
