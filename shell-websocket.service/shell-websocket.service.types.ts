@@ -64,3 +64,9 @@ export interface TerminalSize
     rows: number;
     columns: number;
 }
+
+export interface ConnectionNodeParameters
+{
+    authToken: string;
+    connectionServiceUrl: string;
+}

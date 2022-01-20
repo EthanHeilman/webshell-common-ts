@@ -1,7 +1,7 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import * as ed from 'noble-ed25519';
 import { timeout } from 'rxjs/operators';
-import { ShellEvent, ShellEventType, ShellHubIncomingMessages, ShellHubOutgoingMessages, TerminalSize } from './shell-websocket.service.types';
+import { ConnectionNodeParameters, ShellEvent, ShellEventType, ShellHubIncomingMessages, ShellHubOutgoingMessages, TerminalSize } from './shell-websocket.service.types';
 
 import { AuthConfigService } from '../auth-config-service/auth-config.service';
 import { ILogger } from '../logging/logging.types';
@@ -70,8 +70,7 @@ export class ShellWebsocketService
         private logger: ILogger,
         private authConfigService: AuthConfigService,
         private connectionId: string,
-        private connectionNodeId: string,
-        private connectionNodeAuthToken: string,
+        private connectionNodeParameters: ConnectionNodeParameters,
         inputStream: Subject<string>,
         resizeStream: Subject<TerminalSize>
     ) {
@@ -202,13 +201,9 @@ export class ShellWebsocketService
     private async createConnection(): Promise<HubConnection> {
         // connectionId is related to terminal session
         // connectionNodeAuthToken is used to authenticate the connection
-        const queryString = `?connectionId=${this.connectionId}&authToken=${this.connectionNodeAuthToken}`;
+        const queryString = `?connectionId=${this.connectionId}&authToken=${this.connectionNodeParameters.authToken}`;
 
-        // Construct custom connection url based on service url
-        const bastionUrl = new URL(this.authConfigService.getServiceUrl());
-        const connectionServiceUrl = bastionUrl.href.split('.bastionzero.com')[0] + '-connect.bastionzero.com/' + this.connectionNodeId + '/';
-
-        const connectionUrl = `${connectionServiceUrl}hub/shell/${queryString}`;
+        const connectionUrl = `${this.connectionNodeParameters.connectionServiceUrl}hub/shell/${queryString}`;
 
         return new HubConnectionBuilder()
             .withUrl(
