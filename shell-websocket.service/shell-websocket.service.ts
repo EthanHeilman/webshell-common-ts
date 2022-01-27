@@ -517,17 +517,17 @@ export class ShellWebsocketService
     private async handleKeysplittingError(errorMessage: ErrorMessageWrapper) {
         const errorPayload = errorMessage.errorPayload.payload;
 
-        this.logger.error(`Got agent keysplitting error on message ${errorPayload.hPointer}`);
-        this.logger.error(`Type: ${errorPayload.errorType}`);
-        this.logger.error(`Error Message: ${errorPayload.message}`);
-
         switch(errorPayload.errorType) {
         case KeysplittingErrorTypes.HandlerNotReady:
+            this.logger.debug('Got handler not ready error. Resending input message.');
             await new Promise(resolve => setTimeout(resolve, 1000));
             this.currentInputMessage = undefined;
             await this.processInputMessageQueue();
             break;
         default:
+            this.logger.error(`Got agent keysplitting error on message ${errorPayload.hPointer}`);
+            this.logger.error(`Type: ${errorPayload.errorType}`);
+            this.logger.error(`Error Message: ${errorPayload.message}`);
             this.shellEventSubject.next({ type: ShellEventType.Disconnect});
         }
     }
