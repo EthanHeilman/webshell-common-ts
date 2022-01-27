@@ -8,4 +8,5 @@ export interface SsmTargetSummary {
      status: TargetStatus;
      environmentId: string;
      timeLastStatusUpdate: Date;
+     region: string;
  }
