@@ -5,29 +5,32 @@ import { Environment } from '../../types/environment.types';
 import { Group } from '../../types/group.types';
 import { Subject } from '../../types/subject.types';
 
-export interface KubeTunnelPolicyUpdateRequest {
+export interface KubernetesPolicyCreateRequest {
      /**
       * Policy name. Must be unique.
       */
-     name?: string;
+     name: string;
      /**
-      * Users and API Keys that this policy applies to.    API Keys are valid for only these policy types: Target Connect.
+      * Users and API Keys that this policy applies to. Can be an empty array.
+      * API Keys are valid for only these policy types: Target Connect.
       */
-     subjects?: Subject[];
+     subjects: Subject[];
      /**
-      * Groups that this policy applies to.
+      * Groups that this policy applies to. Can be an empty array.
       */
-     groups?: Group[];
+     groups: Group[];
      /**
-      * Description of the policy.
+      * Any information that will help you understand this policy.
       */
      description?: string;
      /**
       * Environments this policy applies to.
+      * A value must be provided for either <code>environments</code> or <code>clusters</code>.
       */
      environments?: Environment[];
      /**
-      * Kubernetes clusters this policy applies to.
+      * Clusters this policy applies to.
+      * A value must be provided for either <code>clusters</code> or <code>environments</code>.
       */
      clusters?: Cluster[];
      /**

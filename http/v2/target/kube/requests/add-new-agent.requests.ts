@@ -1,5 +1,5 @@
 export interface AddNewAgentRequest {
-    clusterName: string;
+    name: string;
     environmentId?: string;
     /**
      * i.e. {org: bastionzero, env: prod, labelKey: labelValue}

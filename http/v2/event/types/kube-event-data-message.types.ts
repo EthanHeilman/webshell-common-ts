@@ -11,6 +11,6 @@ export interface KubeEventDataMessage {
      statusCode: number;
      userId: string;
      clusterId: string;
-     clusterName: string;
+     targetName: string;
      userEmail: string;
  }

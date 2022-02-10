@@ -1,11 +1,8 @@
-import { AgentStatus } from './agent-status.types';
+import { TargetBase } from '../../types/targetBase.types';
 
-export interface KubeClusterSummary {
-     id: string;
-     clusterName: string;
-     status: AgentStatus;
-     environmentId: string;
-     validUsers: string[];
-     lastAgentUpdate: Date;
-     agentVersion: string;
+export interface KubeClusterSummary extends TargetBase {
+    id: string;
+    environmentId: string;
+    validUsers: string[];
+    lastAgentUpdate: Date;
  }

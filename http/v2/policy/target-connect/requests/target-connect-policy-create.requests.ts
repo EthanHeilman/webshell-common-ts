@@ -11,7 +11,8 @@ export interface TargetConnectPolicyCreateRequest {
       */
      name: string;
      /**
-      * Users and API Keys that this policy applies to. Can be an empty array.                API Keys are valid for only these policy types: Target Connect.
+      * Users and API Keys that this policy applies to. Can be an empty array.
+      * API Keys are valid for only these policy types: Target Connect.
       */
      subjects: Subject[];
      /**
@@ -23,11 +24,13 @@ export interface TargetConnectPolicyCreateRequest {
       */
      description?: string;
      /**
-      * Environments this policy applies to.                A value must be provided for either <code>environments</code> or <code>targets</code>.
+      * Environments this policy applies to.
+      * A value must be provided for either <code>environments</code> or <code>targets</code>.
       */
      environments?: Environment[];
      /**
-      * Targets this policy applies to.    A value must be provided for either <code>targets</code> or <code>environments</code>.
+      * Targets this policy applies to.
+      * A value must be provided for either <code>targets</code> or <code>environments</code>.
       */
      targets?: Target[];
      /**

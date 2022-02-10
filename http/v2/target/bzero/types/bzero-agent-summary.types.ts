@@ -1,12 +1,11 @@
 import { TargetStatus } from '../../types/targetStatus.types';
 
-export interface SsmTargetSummary {
+export interface BzeroAgentSummary {
     id: string;
-    agentId: string;
-    agentVersion: string;
     name: string;
     status: TargetStatus;
-    environmentId: string;
-    timeLastStatusUpdate: Date;
+    environmentId?: string;
+    agentVersion: string;
+    lastAgentUpdate: Date;
     region: string;
- }
+}

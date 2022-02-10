@@ -1,5 +1,5 @@
 export interface EditClusterResponse {
     id: string;
-    clusterName: string;
+    name: string;
     environmentId: string;
 }
