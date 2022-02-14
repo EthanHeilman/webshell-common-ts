@@ -9,3 +9,8 @@ export interface TargetPolicyQueryRequest
     verb?: Verb;
     targetUser?: TargetUser;
 }
+
+export interface TargetPolicyQueryBatchRequest
+{
+    requests: TargetPolicyQueryRequest[]
+}

@@ -8,3 +8,8 @@ export interface TargetPolicyQueryResponse
     allowedTargetUsers: TargetUser[];
     allowedVerbs: Verb[]
 }
+
+export interface TargetPolicyQueryBatchResponse
+{
+    responses: TargetPolicyQueryResponse[]
+}
