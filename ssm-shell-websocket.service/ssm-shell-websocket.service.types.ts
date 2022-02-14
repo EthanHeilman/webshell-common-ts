@@ -2,7 +2,7 @@ import { Observable } from 'rxjs';
 import { SsmTargetInfo } from '../keysplitting.service/keysplitting-types';
 import { IDisposableAsync } from '../utility/disposable';
 
-export interface IShellWebsocketService extends IDisposableAsync{
+export interface ISsmShellWebsocketService extends IDisposableAsync{
     start() : Promise<void>;
 
     updateTargetInfo(targetInfo: SsmTargetInfo): void;
