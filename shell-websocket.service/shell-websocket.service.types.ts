@@ -1,6 +1,7 @@
 import { IDisposableAsync } from '../utility/disposable';
 export interface IShellWebsocketService extends IDisposableAsync{
     start() : Promise<void>;
+    dispose() : Promise<void>
 
     // updateTargetInfo(targetInfo: SsmTargetInfo): void;
 
