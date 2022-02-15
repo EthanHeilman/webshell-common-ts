@@ -1,4 +1,5 @@
 import { IDisposableAsync } from '../utility/disposable';
+import { Observable } from 'rxjs';
 export interface IShellWebsocketService extends IDisposableAsync{
     start() : Promise<void>;
     dispose() : Promise<void>
@@ -14,7 +15,7 @@ export interface IShellWebsocketService extends IDisposableAsync{
 
     // shellReattach() : Promise<void>;
 
-    // outputData: Observable<string>;
+    outputData: Observable<string>;
     // replayData: Observable<string>;
     // shellEventData: Observable<ShellEvent>;
 }

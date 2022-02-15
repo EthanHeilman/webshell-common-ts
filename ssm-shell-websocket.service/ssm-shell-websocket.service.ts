@@ -421,6 +421,7 @@ export class SsmShellWebsocketService
             }
 
             // For out SynAck message we need to set the public key of the target
+            // TODO: Get public key from target information
             const pubkey = synAckMessage.synAckPayload.payload.targetPublicKey;
             this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
 
