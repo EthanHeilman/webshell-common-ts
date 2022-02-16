@@ -13,8 +13,9 @@ import { KeySplittingService } from '../keysplitting.service/keysplitting.servic
 import Utils from '../utility/utils';
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { SignalRLogger } from '../logging/signalr-logger';
-import { DataMessageWrapper, SynMessageWrapper } from '../keysplitting.service/keysplitting-types';
+import { DataMessageWrapper, BZECert } from '../keysplitting.service/keysplitting-types';
 import { v4 as uuidv4 } from 'uuid';
+
 
 interface AgentMessage {
     channelId: string
@@ -26,6 +27,27 @@ interface AgentMessage {
 interface OpenDataChannelPayload {
     action: string,
     syn: string
+}
+
+interface KeysplittingMessage {
+    type: string,
+    keysplittingPayload: Syn,
+    signature: string
+}
+
+interface Syn {
+    timestamp: string,
+    schemaVersion: string,
+    type: string,
+    action: string,
+    actionPayload: string, // base64 encoded bytes
+    targetId: string,
+    nonce: string,
+    bZCert: BZECert
+}
+
+interface SynPayload {
+    targetUser: string
 }
 
 const KeysplittingHandshakeTimeout = 15; // in seconds
@@ -158,13 +180,46 @@ export class ShellWebsocketService
         });
     }
 
-    private async initDataChannel() {
+    // interface Syn {
+    //     timestamp: string,
+    //     schemaVersion: string,
+    //     type: string,
+    //     action: string,
+    //     actionPayload: string, // base64 encoded bytes
+    //     targetId: string,
+    //     nonce: string,
+    //     bZCert: string
+    // }
+
+    private async buildSyn(): Promise<KeysplittingMessage> {
         this.currentIdToken = await this.authConfigService.getIdToken();
-        const synMessage = await this.keySplittingService.buildSynMessage(
-            "",
-            "shell",
-            this.currentIdToken
-        );
+
+        const synPayload: SynPayload = {
+            targetUser: "TODO"
+        }
+        
+        const synMessage: Syn = {
+            timestamp: "",
+            schemaVersion: "",
+            type: "Syn",
+            action: "shell",
+            actionPayload: "", // base64 encoded bytes
+            targetId: "",
+            nonce: this.keySplittingService.randomBytes(32).toString('base64'),
+            bZCert: await (this.keySplittingService.getBZECert(this.currentIdToken))
+        }
+
+        const ksMessage: KeysplittingMessage = {
+            type: "Syn",
+            keysplittingPayload: synMessage,
+            signature: await this.keySplittingService.signHelper(Utils.JSONstringifyOrder(synMessage))
+        }
+        return ksMessage
+    }
+
+    private async initDataChannel() {
+        const synMessage = await this.buildSyn();
+        this.logger.info("SYN: "+JSON.stringify(synMessage))
 
         const openDCMessage: OpenDataChannelPayload = {
             action: "shell",
