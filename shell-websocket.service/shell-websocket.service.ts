@@ -168,7 +168,7 @@ export class ShellWebsocketService
 
         const openDCMessage: OpenDataChannelPayload = {
             action: "shell",
-            syn: btoa(JSON.stringify(synMessage))
+            syn: Buffer.from(JSON.stringify(synMessage)).toString('base64')
         }
 
         //const mBytes = new TextEncoder().encode(JSON.stringify(openDCMessage))
@@ -176,7 +176,7 @@ export class ShellWebsocketService
             channelId: this.dataChannelId,
             messageType: "openDataChannel",
             schemaVersion: "",
-            messagePayload: btoa(JSON.stringify(openDCMessage))
+            messagePayload: Buffer.from(JSON.stringify(openDCMessage)).toString('base64')
         }
 
         // this.synShellOpenMessageHPointer = this.keySplittingService.getHPointer(synMessage.synPayload.payload);
@@ -220,14 +220,14 @@ export class ShellWebsocketService
         //     this.logger.error(`Error in handleSynAck: ${e}`);
         // }
     }
-
+    
     private async sendMessage<TReq>(message: TReq) {
         // wrap our message in an Agent Message
         const agentMessage : AgentMessage = {
             channelId: this.dataChannelId,
             messageType: "keysplitting",
             schemaVersion: "",
-            messagePayload: btoa(JSON.stringify(message))
+            messagePayload: Buffer.from(JSON.stringify(message)).toString('base64')
         }
         // this.logger.debug(`Sending message: ${JSON.stringify(message)}`);
 
