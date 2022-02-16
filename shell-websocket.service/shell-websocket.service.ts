@@ -31,10 +31,10 @@ const agentMessageType = {
 }
 
 const keysplittingType = {
-    Syn = "Syn",
-    SynAck = "SynAck",
-    Data = "Data",
-    DataAck = "DataAck"
+    Syn: "Syn",
+    SynAck: "SynAck",
+    Data: "Data",
+    DataAck: "DataAck"
 }
 
 interface OpenDataChannelPayload {
@@ -225,8 +225,8 @@ export class ShellWebsocketService
             timestamp: "",
             schemaVersion: "",
             type: keysplittingType.Syn,
-            action: "shell",
-            actionPayload: "", // base64 encoded bytes
+            action: "shell/start",
+            actionPayload: Buffer.from(JSON.stringify(synPayload)).toString('base64'), // base64 encoded bytes
             targetId: "",
             nonce: this.keySplittingService.randomBytes(32).toString('base64'),
             bZCert: await (this.keySplittingService.getBZECert(this.currentIdToken))
@@ -245,7 +245,7 @@ export class ShellWebsocketService
         this.logger.info("SYN: " + JSON.stringify(synMessage))
 
         const openDCMessage: OpenDataChannelPayload = {
-            action: "shell",
+            action: "shell/start",
             syn: Buffer.from(JSON.stringify(synMessage)).toString('base64')
         }
 
@@ -269,7 +269,9 @@ export class ShellWebsocketService
 
         switch (message.messageType) {
             case agentMessageType.error:
-                this.logger.error("WE GOT AN " + parsedMessage.type + "ERROR: " + parsedMessage.message);
+                this.logger.error("WE GOT AN " + parsedMessage.type + ": " + parsedMessage.message);
+                // if the parsed message type is a keysplitting error, then we want to resend syn
+                break;
             case agentMessageType.keysplitting:
                 this.logger.info("WE GOT A KEYPSPLITTING MESSAGE");
                 switch(parsedMessage.type) {
@@ -278,8 +280,12 @@ export class ShellWebsocketService
                     case keysplittingType.DataAck:
                         this.logger.error("WE GOT A DATAACK");
                 }
+                break;
             case agentMessageType.stream:
                 this.logger.info("WE GOT A STREAM MESSAGE");
+                break;
+            default:
+                this.logger.error("WE'RE VERY FANCY RIGHT NOW")
         }
 
         // try {
