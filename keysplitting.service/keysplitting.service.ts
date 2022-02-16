@@ -167,7 +167,7 @@ export class KeySplittingService {
         return hashClient.digest();
     }
 
-    private async signHelper(toSign: Buffer): Promise<string> {
+    public async signHelper(toSign: Buffer): Promise<string> {
         // Helper function to sign a string for us
         const hashedSign = this.hashHelper(toSign);
         return Buffer.from(await ed.sign(hashedSign, this.privateKey)).toString('base64');
@@ -201,7 +201,7 @@ export class KeySplittingService {
     }
 
     // Helper function for generating random bytes returned as a Buffer
-    private randomBytes(size: number): Buffer {
+    public randomBytes(size: number): Buffer {
         return Buffer.from(CryptoJS.lib.WordArray.random(size).toString(CryptoJS.enc.Base64), 'base64');
     }
 }
