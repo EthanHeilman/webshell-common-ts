@@ -37,6 +37,14 @@ const keysplittingType = {
     DataAck: "DataAck"
 }
 
+const shellAction = {
+    Open: "shell/open",
+    Input: "shell/input",
+    Replay: "shell/replay",
+    Resize: "shell/resize",
+    Close: "shell/close"
+}
+
 interface OpenDataChannelPayload {
     action: string,
     syn: string
@@ -82,6 +90,9 @@ interface DataAck extends BaseKeysplittingPayload {
 interface SynPayload {
     targetUser: string
 }
+interface ShellInputPayload {
+    data: string
+}
 
 const KeysplittingHandshakeTimeout = 15; // in seconds
 export class ShellWebsocketService
@@ -113,6 +124,8 @@ export class ShellWebsocketService
     // private sequenceNumber = 0;
     // private currentInputMessage: ShellMessage;
     // private lastAckHPointer: string;
+    private hPointer: string;
+    private expectedHPointer: string;
 
     // private inputMessageBuffer: ShellMessage[] = [];
     // private outgoingShellInputMessages: { [h: string]: ShellMessage } = {};
@@ -183,7 +196,7 @@ export class ShellWebsocketService
         this.logger.info("WEBSOCKET STARTED");
 
         this.logger.info("INITIALIZING DATACHANNEL");
-        await this.performMrZAPHandshake();
+        await this.initDataChannel();
         this.logger.info("DATACHANNEL INITIALIZED");
 
         //await this.performMrZAPHandshake();
@@ -216,16 +229,15 @@ export class ShellWebsocketService
     private async buildSyn(): Promise<KeysplittingMessage<Syn>> {
         this.currentIdToken = await this.authConfigService.getIdToken();
 
-        // this eventually goes in the actionPayload in the syn below
         const synPayload: SynPayload = {
-            targetUser: "TODO"
+            targetUser: "ec2-user"
         }
         
         const synMessage: Syn = {
             timestamp: "",
             schemaVersion: "",
             type: keysplittingType.Syn,
-            action: "shell/start",
+            action: shellAction.Open,
             actionPayload: Buffer.from(JSON.stringify(synPayload)).toString('base64'), // base64 encoded bytes
             targetId: "",
             nonce: this.keySplittingService.randomBytes(32).toString('base64'),
@@ -240,12 +252,48 @@ export class ShellWebsocketService
         return ksMessage
     }
 
+    private async sendShellOpen(): Promise<KeysplittingMessage<Data>> {
+        this.currentIdToken = await this.authConfigService.getIdToken();
+        // const dataPayload: ShellInputPayload = {
+        //     data: data
+        // }
+
+        // this.logger.info("IS THIS WORKING"+JSON.stringify(dataPayload))
+
+        const dataMessage: Data = {
+            timestamp: "",
+            schemaVersion: "",
+            type: keysplittingType.Data,
+            action: shellAction.Open,
+            actionPayload: "", //Buffer.from(JSON.stringify(dataPayload)).toString('base64'), // base64 encoded bytes
+            targetId: "",
+            hPointer: "", // this.hPointer,
+            bZCertHash: await this.keySplittingService.getBZECertHash(this.currentIdToken)
+        }
+
+        const ksMessage: KeysplittingMessage<Data> = {
+            type: keysplittingType.Data,
+            keysplittingPayload: dataMessage,
+            signature: await this.keySplittingService.signHelper(Utils.JSONstringifyOrder(dataMessage))
+        }
+
+        this.logger.info(JSON.stringify(ksMessage));
+
+        this.sendMessage<KeysplittingMessage<Data>>(ksMessage);
+
+        return ksMessage
+        // targetId: string,
+        // hPointer: string,
+        // bZCertHash: string,
+        // actionPayload: string, // base64 encoded bytes
+    }
+
     private async initDataChannel() {
         const synMessage = await this.buildSyn();
         this.logger.info("SYN: " + JSON.stringify(synMessage))
 
         const openDCMessage: OpenDataChannelPayload = {
-            action: "shell/start",
+            action: shellAction.Open,
             syn: Buffer.from(JSON.stringify(synMessage)).toString('base64')
         }
 
@@ -269,7 +317,7 @@ export class ShellWebsocketService
 
         switch (message.messageType) {
             case agentMessageType.error:
-                this.logger.error("WE GOT AN " + parsedMessage.type + ": " + parsedMessage.message);
+                this.logger.error(parsedMessage.type + ": " + parsedMessage.message);
                 // if the parsed message type is a keysplitting error, then we want to resend syn
                 break;
             case agentMessageType.keysplitting:
@@ -277,8 +325,17 @@ export class ShellWebsocketService
                 switch(parsedMessage.type) {
                     case keysplittingType.SynAck:
                         this.logger.error("WE GOT A SYNACK");
+                        //let synack: SynAck = JSON.parse(Buffer.from(parsedMessage.keysplittingPayload, 'base64').toString())
+                        // let msg = Buffer.from(parsedMessage.keysplittingPayload, 'base64').toString()
+                        // this.hPointer = await this.keySplittingService.getHPointer(msg);
+                        this.sendShellOpen();
+                        break;
                     case keysplittingType.DataAck:
                         this.logger.error("WE GOT A DATAACK");
+                        this.logger.error("this is the end of lucie's test");
+                        break;
+                    default:
+                        this.logger.error("Recieved an unrecognized keysplitting message type " + parsedMessage.type)
                 }
                 break;
             case agentMessageType.stream:
