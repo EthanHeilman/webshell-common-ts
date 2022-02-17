@@ -1,4 +1,4 @@
 export interface EditSsmTargetRequest {
-    name: string;
+    name?: string;
     environmentId?: string;
 }
