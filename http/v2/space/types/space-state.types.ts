@@ -1,4 +1,4 @@
-export enum SessionState {
+export enum SpaceState {
      Active = 'Active',
      Closed = 'Closed',
      Error = 'Error'
