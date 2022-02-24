@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 export interface IShellWebsocketService extends IDisposableAsync{
     start() : Promise<void>;
     dispose() : Promise<void>
+    shellReplay() : Promise<void>
 
     // updateTargetInfo(targetInfo: SsmTargetInfo): void;
 
@@ -16,15 +17,29 @@ export interface IShellWebsocketService extends IDisposableAsync{
     // shellReattach() : Promise<void>;
 
     outputData: Observable<string>;
-    // replayData: Observable<string>;
-    // shellEventData: Observable<ShellEvent>;
+    replayData: Observable<string>;
+    shellEventData: Observable<ShellEvent>;
+}
+
+export enum ShellEventType {
+    Start = 'Start',
+    Disconnect = 'Disconnect',
+    Delete = 'Delete',
+    Ready = 'Ready',
+    Unattached = 'Unattached',
+    BrokenWebsocket = 'BrokenWebsocket'
+}
+
+export interface ShellEvent {
+    type: ShellEventType;
 }
 
 export enum ShellActions {
-    // Open = 'shell/open',
+    Open = 'shell/open',
     Input = 'shell/input',
     Resize = 'shell/resize'
 }
+
 
 export interface TerminalSize
 {

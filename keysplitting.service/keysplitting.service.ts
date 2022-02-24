@@ -123,6 +123,17 @@ export class KeySplittingService {
             signature: ''
         };
 
+        // Timestamp     string `json:"timestamp"` // Unix time
+        // SchemaVersion string `json:"schemaVersion"`
+        // Type          string `json:"type"`
+        // Action        string `json:"action"`
+    
+        // // Unique to Data Payload
+        // TargetId      string `json:"targetId"`
+        // HPointer      string `json:"hPointer"`
+        // BZCertHash    string `json:"bZCertHash"`
+        // ActionPayload []byte `json:"actionPayload"`
+
         // Then calculate our signature
         const signature = await this.signMessagePayload<DataMessagePayload>(dataMessage);
 

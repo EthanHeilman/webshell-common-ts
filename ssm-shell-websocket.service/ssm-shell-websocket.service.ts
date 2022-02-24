@@ -296,8 +296,9 @@ export class SsmShellWebsocketService
     }
 
     private async processInputMessageQueue() {
+        // currentInputMessage is empty AND we have more to send
         if (! this.currentInputMessage && this.inputMessageBuffer.length > 0) {
-            this.currentInputMessage = this.inputMessageBuffer[0];
+            this.currentInputMessage = this.inputMessageBuffer[0]; // how is this removed
 
             await this.sendShellInputDataMessage(this.currentInputMessage);
         }
@@ -348,6 +349,7 @@ export class SsmShellWebsocketService
             await this.performKeysplittingHandshake();
             return;
         }
+        
         const shellOpenDataPayload = {};
         const dataMessage = await this.keySplittingService.buildDataMessage(
             this.targetInfo.agentId,
