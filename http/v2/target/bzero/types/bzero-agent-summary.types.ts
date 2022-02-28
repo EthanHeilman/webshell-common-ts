@@ -8,4 +8,5 @@ export interface BzeroAgentSummary {
     agentVersion: string;
     lastAgentUpdate: Date;
     region: string;
+    agentPublicKey: string;
 }
