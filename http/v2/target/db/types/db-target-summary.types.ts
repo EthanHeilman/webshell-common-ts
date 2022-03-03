@@ -6,5 +6,5 @@ export interface DbTargetSummary extends TargetBase {
     localHost: string;
     remotePort: number;
     remoteHost: string;
-    bzeroAgentId: string;
+    proxyTargetId: string;
 }

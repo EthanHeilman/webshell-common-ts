@@ -4,9 +4,9 @@ export interface AddNewDbTargetRequest {
      */
     targetName: string;
     /**
-     * Identifier for the backing bzero agent for this target.
+     * Identifier for the backing proxy target.
      */
-    bzeroAgentId: string;
+    proxyTargetId: string;
     /**
      * Hostname or IP address for the target.
      */
