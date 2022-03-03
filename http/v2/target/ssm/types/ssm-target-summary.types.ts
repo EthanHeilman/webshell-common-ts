@@ -1,3 +1,5 @@
+import { TargetUser } from '../../../policy/types/target-user.types';
+import { Verb } from '../../../policy/types/verb.types';
 import { TargetStatus } from '../../types/targetStatus.types';
 
 export interface SsmTargetSummary {
@@ -10,4 +12,6 @@ export interface SsmTargetSummary {
     environmentId: string;
     timeLastStatusUpdate: Date;
     region: string;
+    allowedTargetUsers: TargetUser[];
+    allowedVerbs: Verb[];
  }

@@ -1,3 +1,5 @@
+import { TargetUser } from '../../../policy/types/target-user.types';
+import { Verb } from '../../../policy/types/verb.types';
 import { TargetStatus } from '../../types/targetStatus.types';
 
 export interface BzeroAgentSummary {
@@ -9,4 +11,6 @@ export interface BzeroAgentSummary {
     lastAgentUpdate: Date;
     region: string;
     agentPublicKey: string;
+    allowedTargetUsers: TargetUser[];
+    allowedVerbs: Verb[];
 }
