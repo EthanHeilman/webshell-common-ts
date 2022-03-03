@@ -11,7 +11,7 @@ export interface CreateSsmShellConnectionRequest {
 }
 
 export interface CreateShellConnectionRequest {
-     // spaceId: string;
+     spaceId: string;
      targetId: string;
      // targetType: TargetType;
      /**
