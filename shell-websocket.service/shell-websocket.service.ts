@@ -24,6 +24,11 @@ interface AgentMessage {
     messagePayload: string
 }
 
+const steamMessageType = {
+    ShellStdOut: 'shell/stdout',
+    ShellQuit: 'shell/quit'
+}
+
 const agentMessageType = {
     error: 'error',
     keysplitting: 'keysplitting',
@@ -183,18 +188,18 @@ export class ShellWebsocketService
 
 
         // // this is called if the server closes the websocket
-        // this.websocket.onclose(() => {
-        //     this.logger.debug('websocket closed by server');
-        //     this.shellEventSubject.next({ type: ShellEventType.Disconnect });
-        // });
+        this.websocket.onclose(() => {
+            this.logger.debug('websocket closed by server');
+            this.shellEventSubject.next({ type: ShellEventType.Disconnect });
+        });
 
-        // this.websocket.onreconnecting(_ => {
-        //     this.shellEventSubject.next({ type: ShellEventType.BrokenWebsocket });
-        // });
+        this.websocket.onreconnecting(_ => {
+            this.shellEventSubject.next({ type: ShellEventType.BrokenWebsocket });
+        });
 
-        // this.websocket.onreconnected(_ => {
-        //     this.logger.debug('Websocket reconnected');
-        // });
+        this.websocket.onreconnected(_ => {
+            this.logger.debug('Websocket reconnected');
+        });
 
         // Make sure keysplitting service is initialized (keys loaded)
         await this.keySplittingService.init();
@@ -205,9 +210,7 @@ export class ShellWebsocketService
         await this.websocket.start();
         this.logger.info("Websocket connection started");
 
-        this.logger.info("INITIALIZING DATACHANNEL");
         await this.initDataChannel();
-        this.logger.info("DATACHANNEL INITIALIZED");
 
         //await this.performMrZAPHandshake();
     }
@@ -317,7 +320,6 @@ export class ShellWebsocketService
     }
 
     private async handleAgentMessage(message: AgentMessage) {
-        // this.logger.info(`WE GOT SOMETHING ${JSON.stringify(message)}`)
         const messagePayload = Buffer.from(message.messagePayload, 'base64').toString()
         const parsedMessage = JSON.parse(messagePayload);
 
@@ -364,13 +366,22 @@ export class ShellWebsocketService
                         this.logger.error("Recieved an unrecognized keysplitting message type " + parsedMessage.type)
                 }
                 break;
-            case agentMessageType.stream:
-                this.outputSubject.next(parsedMessage.content);
-
-                break;
-            default:
-                this.logger.error("WE'RE VERY FANCY RIGHT NOW")
-        }
+                case agentMessageType.stream:    
+                    switch (parsedMessage.type) {
+                        case steamMessageType.ShellQuit:
+                            this.shellEventSubject.next({ type: ShellEventType.Disconnect });
+                            // this.dispose();
+                            break;
+                        case steamMessageType.ShellStdOut:
+                            this.outputSubject.next(parsedMessage.content);
+                            break;
+                        default:
+                            this.logger.error("Unrecognised Stream Message Type")
+                    }
+                    break;
+                default:
+                    this.logger.error("Recognised Agent Message Type")
+            }
 
         try {
             // this.logger.debug(`Received SynAck message: ${JSON.stringify(synAckMessage)}`);
