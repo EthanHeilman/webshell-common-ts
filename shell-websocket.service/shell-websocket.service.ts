@@ -205,14 +205,23 @@ export class ShellWebsocketService
         await this.keySplittingService.init();
 
         this.websocket.on(DaemonHubIncomingMessages.shellMessage, (shellMessage) => this.handleAgentMessage(shellMessage));
+        this.websocket.on(DaemonHubIncomingMessages.AttachToExistingDataChannel, (dataChannelId) => this.attachToExistingDataChannelHandler(dataChannelId));
+        this.websocket.on(DaemonHubIncomingMessages.OpenNewDataChannel, () => this.initDataChannel());
 
         // Finally start the websocket connection
         await this.websocket.start();
         this.logger.info("Websocket connection started");
+    }
 
-        await this.initDataChannel();
+    private async attachToExistingDataChannelHandler(dataChannelId: string) {
+        this.dataChannelId = dataChannelId;
+        
+        const synMessage = await this.buildSyn();
+        this.expectedHPointer = this.keySplittingService.getHPointer(synMessage.keysplittingPayload)
+        let expectedHPointer = this.keySplittingService.getHPointer(synMessage.keysplittingPayload)
+        this.outgoingShellInputMessages[expectedHPointer] = this.currentInputMessage;
 
-        //await this.performMrZAPHandshake();
+        await this.sendMessage(synMessage);
     }
 
     private async performMrZAPHandshake(): Promise<boolean> {

@@ -54,7 +54,9 @@ export interface ConnectionNodeParameters
 }
 
 export const DaemonHubIncomingMessages = {
-    shellMessage: 'ResponseBastionToDaemonV1'
+    shellMessage: 'ResponseBastionToDaemonV1',
+    OpenNewDataChannel: 'OpenNewDataChannel',
+    AttachToExistingDataChannel: 'AttachToExistingDataChannel'
 
     // shellOutput: 'ShellOutput',
     // shellReplay: 'ShellReplay',
