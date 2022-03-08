@@ -331,37 +331,41 @@ export class ShellWebsocketService
     }
 
     private async handleAgentMessage(message: AgentMessage) {
-        const messagePayload = Buffer.from(message.messagePayload, 'base64').toString()
-        const parsedMessage = JSON.parse(messagePayload);
-
-
+        // turn our agent message MessagePayload into an object we can read
+        const messagePayloadDecoded = Buffer.from(message.messagePayload, 'base64').toString()
+        const messagePayload = JSON.parse(messagePayloadDecoded);
 
         switch (message.messageType) {
             case agentMessageType.error:
-                this.logger.error(parsedMessage.type + ": " + parsedMessage.message);
+                this.logger.error(messagePayload.type + ": " + messagePayload.message);
                 // if the parsed message type is a keysplitting error, then we want to resend syn
                 break;
             case agentMessageType.keysplitting:
-
-
-                switch(parsedMessage.type) {
+                switch(messagePayload.type) {
                     case keysplittingType.SynAck:
-                        this.logger.debug("SYNACK recieved");
-                        let hPointer = parsedMessage.keysplittingPayload.hPointer;
+                        this.logger.debug("SYNACK received");
+
+                        // check to see if this is a message we sent
+                        let hPointer = messagePayload.keysplittingPayload.hPointer;
                         if (this.outgoingShellInputMessages[hPointer]){
-                            this.logger.debug('Received message from another client.');
-                            this.isActiveClient = false;
+                            this.logger.info('Another client has attached to this session'); // LUCIE: info? debug?
+                            this.isActiveClient = false; // we're no longer the one actively sending input
                             this.shellEventSubject.next({ type: ShellEventType.Unattached});
                             return;
                         } else {
+                            // if this is in response to something we sent, then we are the active client now
                             this.isActiveClient = true;
                         }
 
-                        this.lastAckHPointer = await this.keySplittingService.getHPointer(parsedMessage.keysplittingPayload);
+                        // calculate the hash of the syn/ack
+                        this.lastAckHPointer = await this.keySplittingService.getHPointer(messagePayload.keysplittingPayload);
 
+                        // if we're attaching, then we need to get shell state
                         if (this.attaching) {
                             this.sendShellReplay();
+                            this.attaching = false;
                         } else {
+                            // if we're not attaching, we're opening a new shell on the target
                             this.sendShellOpen();
                         }
                             
@@ -369,28 +373,32 @@ export class ShellWebsocketService
                         break;
                     case keysplittingType.DataAck:
 
-                        this.lastAckHPointer = await this.keySplittingService.getHPointer(parsedMessage.keysplittingPayload);
-                        
-                        if (parsedMessage.keysplittingPayload.action == "shell/replay") {
-                            var termoutBuff = Buffer.from(parsedMessage.keysplittingPayload.actionResponsePayload, 'base64').toString()
-                            // this.outputSubject.next(termoutBuff);
-                            this.logger.error("replay: "+termoutBuff)
-                        }
-                        await this.handleShellInputOrResizeDataAck(parsedMessage.keysplittingPayload);
+                        // if we're not the active client we ignore all data/acks
+                        if (this.isActiveClient) {
 
+                            // our replay output arrives in a data/ack instead of a stream stdout, so we need to display it
+                            if (messagePayload.keysplittingPayload.action == "shell/replay") {
+                                var replayData = Buffer.from(messagePayload.keysplittingPayload.actionResponsePayload, 'base64').toString()
+                                this.outputSubject.next(replayData);
+                            }
+
+                            this.lastAckHPointer = await this.keySplittingService.getHPointer(messagePayload.keysplittingPayload);
+                            await this.handleShellInputOrResizeDataAck(messagePayload.keysplittingPayload);
+                        }
                         break;
                     default:
-                        this.logger.error("Recieved an unrecognized keysplitting message type " + parsedMessage.type)
+                        this.logger.error("Recieved an unrecognized keysplitting message type " + messagePayload.type)
                 }
                 break;
+
                 case agentMessageType.stream:    
-                    switch (parsedMessage.type) {
+                    switch (messagePayload.type) {
                         case steamMessageType.ShellQuit:
                             this.shellEventSubject.next({ type: ShellEventType.Disconnect });
                             // this.dispose();
                             break;
                         case steamMessageType.ShellStdOut:
-                            this.outputSubject.next(parsedMessage.content);
+                            this.outputSubject.next(messagePayload.content);
                             break;
                         default:
                             this.logger.error("Unrecognised Stream Message Type")
@@ -400,38 +408,38 @@ export class ShellWebsocketService
                     this.logger.error("Recognised Agent Message Type")
             }
 
-        try {
-            // this.logger.debug(`Received SynAck message: ${JSON.stringify(synAckMessage)}`);
+        // try {
+        //     // this.logger.debug(`Received SynAck message: ${JSON.stringify(synAckMessage)}`);
 
-            // // For now we only only a single client to be attached to the shell
-            // // at a time so if we see another synack message we dont recognize
-            // // immediately disconnect
-            // if (synAckMessage.synAckPayload.payload.hPointer != this.synShellOpenMessageHPointer) {
-            //     this.logger.debug('[SynAck] received message from another client.');
-            //     this.isActiveClient = false;
-            //     this.shellEventSubject.next({ type: ShellEventType.Unattached});
-            //     return;
-            // }
+        //     // // For now we only only a single client to be attached to the shell
+        //     // // at a time so if we see another synack message we dont recognize
+        //     // // immediately disconnect
+        //     // if (synAckMessage.synAckPayload.payload.hPointer != this.synShellOpenMessageHPointer) {
+        //     //     this.logger.debug('[SynAck] received message from another client.');
+        //     //     this.isActiveClient = false;
+        //     //     this.shellEventSubject.next({ type: ShellEventType.Unattached});
+        //     //     return;
+        //     // }
 
-            // // For out SynAck message we need to set the public key of the target
-            // const pubkey = synAckMessage.synAckPayload.payload.targetPublicKey;
-            // this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
+        //     // // For out SynAck message we need to set the public key of the target
+        //     // const pubkey = synAckMessage.synAckPayload.payload.targetPublicKey;
+        //     // this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
 
-            // // Validate our signature
-            // if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
-            //     const errorString = '[SynAck] Error Validating Signature!';
-            //     this.logger.error(errorString);
-            //     throw new Error(errorString);
-            // }
+        //     // // Validate our signature
+        //     // if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
+        //     //     const errorString = '[SynAck] Error Validating Signature!';
+        //     //     this.logger.error(errorString);
+        //     //     throw new Error(errorString);
+        //     // }
 
-            // this.synAckShellOpenMessageHPointer = this.keySplittingService.getHPointer(synAckMessage.synAckPayload.payload);
-            // this.lastAckHPointer = this.synAckShellOpenMessageHPointer;
-            this.isActiveClient = true;
+        //     // this.synAckShellOpenMessageHPointer = this.keySplittingService.getHPointer(synAckMessage.synAckPayload.payload);
+        //     // this.lastAckHPointer = this.synAckShellOpenMessageHPointer;
+        //     this.isActiveClient = true;
 
-            // await this.sendShellOpenDataMessage();
-        } catch(e) {
-            this.logger.error(`Error in handleSynAck: ${e}`);
-        }
+        //     // await this.sendShellOpenDataMessage();
+        // } catch(e) {
+        //     this.logger.error(`Error in handleSynAck: ${e}`);
+        // }
     }
     
     private async sendMessage<TReq>(message: TReq) {
