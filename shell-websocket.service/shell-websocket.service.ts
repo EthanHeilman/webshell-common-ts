@@ -128,10 +128,10 @@ export class ShellWebsocketService
     private keysplittingHandshakeCompleteSubject = new Subject<boolean>();
     private keysplittingHandshakeComplete: Observable<boolean> = this.keysplittingHandshakeCompleteSubject.asObservable();
 
-    private synShellOpenMessageHPointer: string;
-    private synAckShellOpenMessageHPointer: string;
-    private dataShellOpenMessageHPointer: string;
-    private dataAckShellOpenMessageHPointer: string;
+    // private synShellOpenMessageHPointer: string;
+    // private synAckShellOpenMessageHPointer: string;
+    // private dataShellOpenMessageHPointer: string;
+    // private dataAckShellOpenMessageHPointer: string;
 
     // private sequenceNumber = 0;
     private currentInputMessage: KeysplittingMessage<Data>;
@@ -145,6 +145,7 @@ export class ShellWebsocketService
     private outgoingShellInputMessages: { [h: string]: KeysplittingMessage<Data> } = {};
 
     private isActiveClient = false;
+    private attaching = false;
 
     private currentIdToken: string = undefined;
     // private targetPublicKey: ed.Point;
@@ -187,7 +188,7 @@ export class ShellWebsocketService
 
 
 
-        // // this is called if the server closes the websocket
+        // this is called if the server closes the websocket
         this.websocket.onclose(() => {
             this.logger.debug('websocket closed by server');
             this.shellEventSubject.next({ type: ShellEventType.Disconnect });
@@ -214,6 +215,7 @@ export class ShellWebsocketService
     }
 
     private async attachToExistingDataChannelHandler(dataChannelId: string) {
+        this.attaching = true;
         this.dataChannelId = dataChannelId;
         
         const synMessage = await this.buildSyn();
@@ -356,7 +358,13 @@ export class ShellWebsocketService
                         }
 
                         this.lastAckHPointer = await this.keySplittingService.getHPointer(parsedMessage.keysplittingPayload);
-                        this.sendShellOpen();
+
+                        if (this.attaching) {
+                            this.sendShellReplay();
+                        } else {
+                            this.sendShellOpen();
+                        }
+                            
                         this.shellEventSubject.next({ type: ShellEventType.Start });
                         break;
                     case keysplittingType.DataAck:
@@ -609,7 +617,7 @@ export class ShellWebsocketService
         }
     }
 
-    public async shellReplay() {
+    public async sendShellReplay() {
         this.logger.error("Running replay");
 
         const actionPayload: ShellReplayPayload = {}

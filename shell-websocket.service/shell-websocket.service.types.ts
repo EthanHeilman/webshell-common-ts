@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 export interface IShellWebsocketService extends IDisposableAsync{
     start() : Promise<void>;
     dispose() : Promise<void>
-    shellReplay() : Promise<void>
+    //shellReplay() : Promise<void>
 
     // updateTargetInfo(targetInfo: SsmTargetInfo): void;
 
