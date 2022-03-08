@@ -8,7 +8,8 @@ import {DaemonHubOutgoingMessages, ShellEvent, ShellEventType, DaemonHubIncoming
 import { AuthConfigService } from '../auth-config-service/auth-config.service';
 import { ILogger } from '../logging/logging.types';
 import { KeySplittingService } from '../keysplitting.service/keysplitting.service';
-import { DataAckMessageWrapper, DataAckPayload, ErrorMessageWrapper, ShellTerminalSizeActionPayload, SsmTargetInfo, SynAckMessageWrapper, SynAckPayload, SynMessageWrapper, KeysplittingErrorTypes } from '../keysplitting.service/keysplitting-types';
+// import { DataAckMessageWrapper, DataAckPayload, ErrorMessageWrapper, ShellTerminalSizeActionPayload, SsmTargetInfo, SynAckMessageWrapper, SynAckPayload, SynMessageWrapper, KeysplittingErrorTypes } from '../keysplitting.service/keysplitting-types';
+import { BzeroTargetInfo } from '../keysplitting.service/keysplitting-types';
 // import {ShellActions}  from '../keysplitting.service/keysplitting-types';
 import Utils from '../utility/utils';
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
@@ -153,7 +154,8 @@ export class ShellWebsocketService
 
     constructor(
         private keySplittingService: KeySplittingService,
-        // private targetInfo: SsmTargetInfo,
+        private targetInfo: BzeroTargetInfo,
+        private targetUser: string,
         private logger: ILogger,
         private authConfigService: AuthConfigService,
         private connectionId: string,
@@ -185,8 +187,6 @@ export class ShellWebsocketService
         //         this.outputSubject.next(req.data);
         //     }
         // );
-
-
 
         // this is called if the server closes the websocket
         this.websocket.onclose(() => {
@@ -254,7 +254,7 @@ export class ShellWebsocketService
         this.currentIdToken = await this.authConfigService.getIdToken();
 
         const synPayload: SynPayload = {
-            targetUser: "ec2-user"
+            targetUser: this.targetUser
         }
         
         const synMessage: Syn = {
@@ -263,7 +263,7 @@ export class ShellWebsocketService
             type: keysplittingType.Syn,
             action: shellAction.Open,
             actionPayload: Buffer.from(JSON.stringify(synPayload)).toString('base64'), // base64 encoded bytes
-            targetId: "",
+            targetId: this.targetInfo.agentPublicKey,
             nonce: this.keySplittingService.randomBytes(32).toString('base64'),
             bZCert: await (this.keySplittingService.getBZECert(this.currentIdToken))
         }
@@ -379,6 +379,7 @@ export class ShellWebsocketService
                             // our replay output arrives in a data/ack instead of a stream stdout, so we need to display it
                             if (messagePayload.keysplittingPayload.action == "shell/replay") {
                                 var replayData = Buffer.from(messagePayload.keysplittingPayload.actionResponsePayload, 'base64').toString()
+                                this.logger.debug(replayData)
                                 this.outputSubject.next(replayData);
                             }
 
@@ -474,7 +475,7 @@ export class ShellWebsocketService
             type: keysplittingType.Data,
             action: shellAction.Input,
             actionPayload: Utils.JSONstringifyOrder(actionPayload).toString('base64'),
-            targetId: "",
+            targetId: this.targetInfo.agentPublicKey,
             hPointer: "not set",
             // hPointer: this.lastAckHPointer,
             bZCertHash: await this.keySplittingService.getBZECertHash(this.currentIdToken)
@@ -565,7 +566,7 @@ export class ShellWebsocketService
             type: keysplittingType.Data,
             action: shellAction.Resize,
             actionPayload: Utils.JSONstringifyOrder(actionPayload).toString('base64'),
-            targetId: "",
+            targetId: this.targetInfo.agentPublicKey,
             hPointer: "not set",
             bZCertHash: await this.keySplittingService.getBZECertHash(this.currentIdToken)
         }
@@ -636,7 +637,7 @@ export class ShellWebsocketService
             type: keysplittingType.Data,
             action: shellAction.Replay,
             actionPayload: Utils.JSONstringifyOrder(actionPayload).toString('base64'),
-            targetId: "",
+            targetId: this.targetInfo.agentPublicKey,
             hPointer: "not set",
             bZCertHash: await this.keySplittingService.getBZECertHash(this.currentIdToken)
         }

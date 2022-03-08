@@ -4,6 +4,12 @@ export interface SsmTargetInfo {
     agentVersion: string;
 }
 
+export interface BzeroTargetInfo{
+    id: string;
+    agentPublicKey: string;
+    agentVersion: string;
+}
+
 export interface BZECert {
     initialIdToken: string;
     currentIdToken: string;
