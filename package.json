@@ -1,9 +1,0 @@
-{
-  "dependencies": {
-    "buffer": "^6.0.3",
-    "uuid": "^8.3.2"
-  },
-  "devDependencies": {
-    "@types/node": "^17.0.18"
-  }
-}
