@@ -237,7 +237,7 @@ export class SsmTunnelWebsocketService
                 this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
 
                 // Validate our signature
-                if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
+                if (await this.keySplittingService.validateSsmAgentSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
                     const errorString = '[SynAck] Error Validating Signature!';
                     this.logger.error(errorString);
                     throw new Error(errorString);
@@ -263,7 +263,7 @@ export class SsmTunnelWebsocketService
                 }
 
                 // Validate our signature
-                if (await this.keySplittingService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey) != true) {
+                if (await this.keySplittingService.validateSsmAgentSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey) != true) {
                     const errorString = '[DataAck] Error Validating Signature!';
                     this.logger.error(errorString);
                     throw new Error(errorString);

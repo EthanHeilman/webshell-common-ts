@@ -296,8 +296,9 @@ export class SsmShellWebsocketService
     }
 
     private async processInputMessageQueue() {
+        // currentInputMessage is empty AND we have more to send
         if (! this.currentInputMessage && this.inputMessageBuffer.length > 0) {
-            this.currentInputMessage = this.inputMessageBuffer[0];
+            this.currentInputMessage = this.inputMessageBuffer[0]; // how is this removed
 
             await this.sendShellInputDataMessage(this.currentInputMessage);
         }
@@ -348,6 +349,7 @@ export class SsmShellWebsocketService
             await this.performKeysplittingHandshake();
             return;
         }
+
         const shellOpenDataPayload = {};
         const dataMessage = await this.keySplittingService.buildDataMessage(
             this.targetInfo.agentId,
@@ -426,7 +428,7 @@ export class SsmShellWebsocketService
             this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
 
             // Validate our signature
-            if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
+            if (await this.keySplittingService.validateSsmAgentSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
                 const errorString = '[SynAck] Error Validating Signature!';
                 this.logger.error(errorString);
                 throw new Error(errorString);
@@ -478,7 +480,7 @@ export class SsmShellWebsocketService
         }
 
         // Validate our signature
-        if (! await this.keySplittingService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey)) {
+        if (! await this.keySplittingService.validateSsmAgentSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey)) {
             const errorString = '[DataAck] Error Validating Signature!';
             this.logger.error(errorString);
             throw new Error(errorString);

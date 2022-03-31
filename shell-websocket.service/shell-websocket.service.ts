@@ -1,20 +1,18 @@
 
 import { Observable, Subject, Subscription } from 'rxjs';
-import * as ed from 'noble-ed25519';
 import { timeout } from 'rxjs/operators';
-// import { ConnectionNodeParameters, ShellEvent, ShellEventType, ShellHubIncomingMessages, ShellHubOutgoingMessages, TerminalSize } from './ssm-shell-websocket.service.types';
-import {DaemonHubOutgoingMessages, DaemonHubIncomingMessages, TerminalSize, ShellActions, ConnectionNodeParameters} from './shell-websocket.service.types';
+import {DaemonHubOutgoingMessages, ShellEvent, ShellEventType, DaemonHubIncomingMessages, TerminalSize, ConnectionNodeParameters} from './shell-websocket.service.types';
 
 import { AuthConfigService } from '../auth-config-service/auth-config.service';
 import { ILogger } from '../logging/logging.types';
 import { KeySplittingService } from '../keysplitting.service/keysplitting.service';
-// import { DataAckMessageWrapper, DataAckPayload, DataMessageWrapper, ErrorMessageWrapper, ShellActions, ShellTerminalSizeActionPayload, SsmTargetInfo, SynAckMessageWrapper, SynAckPayload, SynMessageWrapper, KeysplittingErrorTypes } from '../keysplitting.service/keysplitting-types';
-// import {ShellActions}  from '../keysplitting.service/keysplitting-types';
 import Utils from '../utility/utils';
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { SignalRLogger } from '../logging/signalr-logger';
-import { DataMessageWrapper, BZECert } from '../keysplitting.service/keysplitting-types';
+import { BZECert } from '../keysplitting.service/keysplitting-types';
 import { v4 as uuidv4 } from 'uuid';
+import * as ed from 'noble-ed25519';
+import { BzeroAgentSummary } from '../http/v2/target/bzero/types/bzero-agent-summary.types';
 
 
 interface AgentMessage {
@@ -24,33 +22,38 @@ interface AgentMessage {
     messagePayload: string
 }
 
+const steamMessageType = {
+    ShellStdOut: 'shell/stdout',
+    ShellQuit: 'shell/quit'
+};
+
 const agentMessageType = {
     error: 'error',
     keysplitting: 'keysplitting',
     stream: 'stream'
-}
+};
 
 const keysplittingType = {
-    Syn: "Syn",
-    SynAck: "SynAck",
-    Data: "Data",
-    DataAck: "DataAck"
-}
+    Syn: 'Syn',
+    SynAck: 'SynAck',
+    Data: 'Data',
+    DataAck: 'DataAck'
+};
 
 const shellAction = {
-    Open: "shell/open",
-    Input: "shell/input",
-    Replay: "shell/replay",
-    Resize: "shell/resize",
-    Close: "shell/close"
-}
+    Open: 'shell/open',
+    Input: 'shell/input',
+    Replay: 'shell/replay',
+    Resize: 'shell/resize',
+    Close: 'shell/close'
+};
 
 interface OpenDataChannelPayload {
     action: string,
     syn: string
 }
 
-interface KeysplittingMessage <TPayload> {
+interface KeysplittingMessage<TPayload> {
     type: string,
     keysplittingPayload: TPayload,
     signature: string
@@ -94,7 +97,14 @@ interface ShellInputPayload {
     data: string
 }
 
-const KeysplittingHandshakeTimeout = 15; // in seconds
+interface ShellResizePayload {
+	cols: number,
+	rows: number
+}
+
+interface ShellReplayPayload {}
+
+const KeysplittingHandshakeTimeout = 30; // in seconds
 export class ShellWebsocketService
 {
     private websocket : HubConnection;
@@ -107,38 +117,33 @@ export class ShellWebsocketService
     private outputSubject: Subject<string>;
     public outputData: Observable<string>;
 
-    // private replaySubject: Subject<string>;
-    // public replayData: Observable<string>;
+    public replayData: Observable<string>;
 
-    // private shellEventSubject: Subject<ShellEvent>;
-    // public shellEventData: Observable<ShellEvent>;
+    private shellEventSubject: Subject<ShellEvent>;
+    public shellEventData: Observable<ShellEvent>;
 
     private keysplittingHandshakeCompleteSubject = new Subject<boolean>();
     private keysplittingHandshakeComplete: Observable<boolean> = this.keysplittingHandshakeCompleteSubject.asObservable();
 
-    // private synShellOpenMessageHPointer: string;
-    // private synAckShellOpenMessageHPointer: string;
-    // private dataShellOpenMessageHPointer: string;
-    // private dataAckShellOpenMessageHPointer: string;
-
-    // private sequenceNumber = 0;
-    // private currentInputMessage: ShellMessage;
-    // private lastAckHPointer: string;
-    private hPointer: string;
+    private lastAckHPointer: string;
     private expectedHPointer: string;
 
-    // private inputMessageBuffer: ShellMessage[] = [];
-    // private outgoingShellInputMessages: { [h: string]: ShellMessage } = {};
+    private currentInputMessage: KeysplittingMessage<Data>;
+    private inputMessageBuffer: KeysplittingMessage<Data>[] = [];
+    private outgoingShellMessages: { [h: string]: KeysplittingMessage<Data> } = {};
 
-    // private isActiveClient = false;
+    private isActiveClient = false;
+    private attaching = false;
+    private refreshingBZCert = false;
 
     private currentIdToken: string = undefined;
-    // private targetPublicKey: ed.Point;
+    private targetPublicKey: ed.Point;
     private dataChannelId: string = uuidv4();
 
     constructor(
         private keySplittingService: KeySplittingService,
-        // private targetInfo: SsmTargetInfo,
+        private targetInfo: BzeroAgentSummary,
+        private targetUser: string,
         private logger: ILogger,
         private authConfigService: AuthConfigService,
         private connectionId: string,
@@ -148,246 +153,293 @@ export class ShellWebsocketService
     ) {
         this.outputSubject = new Subject<string>();
         this.outputData = this.outputSubject.asObservable();
-        // this.shellEventSubject = new Subject<ShellEvent>();
-        // this.shellEventData = this.shellEventSubject.asObservable();
+        this.shellEventSubject = new Subject<ShellEvent>();
+        this.shellEventData = this.shellEventSubject.asObservable();
+        this.targetPublicKey = ed.Point.fromHex(Buffer.from(this.targetInfo.agentPublicKey, 'base64').toString('hex'));
 
         this.connectionId = connectionId;
         this.inputSubscription = inputStream.asObservable().subscribe((data) => this.handleInput(data));
-        // this.resizeSubscription = resizeStream.asObservable().subscribe((data) => this.handleResize(data));
+        this.resizeSubscription = resizeStream.asObservable().subscribe((data) => this.handleResize(data));
     }
 
     public async start()
     {
-        this.logger.info("creating connection");
+        this.logger.debug('Starting Websocket connection');
         this.websocket = await this.createConnection();
-        this.logger.info("connection created!!!!!!!");
 
-        this.websocket.on(
-            DaemonHubIncomingMessages.shellMessage,
-            req =>
-            {
-                // ref: https://git.coolaj86.com/coolaj86/atob.js/src/branch/master/node-atob.js
-                this.outputSubject.next(req.data);
-            }
-        );
+        // this is called if the server closes the websocket
+        this.websocket.onclose(() => {
+            this.logger.debug('websocket closed by server');
+            this.shellEventSubject.next({ type: ShellEventType.Disconnect });
+        });
 
-        // // this is called if the server closes the websocket
-        // this.websocket.onclose(() => {
-        //     this.logger.debug('websocket closed by server');
-        //     this.shellEventSubject.next({ type: ShellEventType.Disconnect });
-        // });
+        this.websocket.onreconnecting(_ => {
+            this.shellEventSubject.next({ type: ShellEventType.BrokenWebsocket });
+        });
 
-        // this.websocket.onreconnecting(_ => {
-        //     this.shellEventSubject.next({ type: ShellEventType.BrokenWebsocket });
-        // });
-
-        // this.websocket.onreconnected(_ => {
-        //     this.logger.debug('Websocket reconnected');
-        // });
+        this.websocket.onreconnected(_ => {
+            this.logger.debug('Websocket reconnected');
+        });
 
         // Make sure keysplitting service is initialized (keys loaded)
         await this.keySplittingService.init();
 
         this.websocket.on(DaemonHubIncomingMessages.shellMessage, (shellMessage) => this.handleAgentMessage(shellMessage));
+        this.websocket.on(DaemonHubIncomingMessages.AttachToExistingDataChannel, (dataChannelId) => this.performMrZapHandshake(() => this.attachToExistingDataChannelHandler(dataChannelId)));
+        this.websocket.on(DaemonHubIncomingMessages.OpenNewDataChannel, () => this.performMrZapHandshake(() => this.initDataChannel()));
+        this.websocket.on(DaemonHubIncomingMessages.CloseConnection, () => this.destroyConnection());
 
         // Finally start the websocket connection
         await this.websocket.start();
-
-        this.logger.info("WEBSOCKET STARTED");
-
-        this.logger.info("INITIALIZING DATACHANNEL");
-        await this.initDataChannel();
-        this.logger.info("DATACHANNEL INITIALIZED");
-
-        //await this.performMrZAPHandshake();
+        this.logger.debug('Websocket connection started');
+        this.logger.debug(`Agent Version ${this.targetInfo.agentVersion}, Agent PublicKey: ${this.targetInfo.agentPublicKey}`);
     }
 
-    private async performMrZAPHandshake(): Promise<boolean> {
-        // if(this.targetInfo.agentVersion === '') {
-        //     throw new Error(`Unable to perform keysplitting handshake: agentVersion is not known for target ${this.targetInfo.id}`);
-        // }
-        // if(this.targetInfo.agentId === '' ) {
-        //     throw new Error(`Unknown agentId in sendOpenShellSynMessage for target ${this.targetInfo.id}`);
-        // }
+    private async initDataChannel() {
+        this.logger.debug(`Initializing new data channel with agent`);
 
-        // this.logger.debug(`Starting keysplitting handshake with ${this.targetInfo.id}`);
-        // this.logger.debug(`Agent Version ${this.targetInfo.agentVersion}, Agent ID: ${this.targetInfo.agentId}`);
+        const synMessage = await this.buildSyn();
+        this.expectedHPointer = this.keySplittingService.getHPointer(synMessage.keysplittingPayload);
 
-        return new Promise(async (res, rej) => {
+        const openDCMessage: OpenDataChannelPayload = {
+            action: shellAction.Open,
+            syn: Buffer.from(JSON.stringify(synMessage)).toString('base64')
+        };
+
+        const agentMessage : AgentMessage = {
+            channelId: this.dataChannelId,
+            messageType: 'openDataChannel',
+            schemaVersion: '',
+            messagePayload: Buffer.from(JSON.stringify(openDCMessage)).toString('base64')
+        };
+
+        await this.sendWebsocketMessage(DaemonHubOutgoingMessages.openDataChannel, agentMessage);
+    }
+
+    private async attachToExistingDataChannelHandler(dataChannelId: string) {
+        this.logger.debug(`Attaching to existing data channel: ${dataChannelId}`);
+
+        this.attaching = true;
+        this.dataChannelId = dataChannelId;
+
+        this.sendSynMessage();
+    }
+
+    private async performMrZapHandshake(startHandshakeFunc: () => Promise<void>): Promise<boolean> {
+        const handShakePromise = new Promise(async (res, rej) => {
             this.keysplittingHandshakeComplete
                 .pipe(timeout(KeysplittingHandshakeTimeout * 1000))
                 .subscribe(
-                    completedSuccessfully => res(completedSuccessfully),
+                    completedSuccessfully => {
+                        res(completedSuccessfully);
+                    },
                     _ => rej(`Keyspliting handshake timed out after ${KeysplittingHandshakeTimeout} seconds`)
                 );
 
-            // start the keysplitting handshake
-            await this.initDataChannel();
+            // Start handshake
+            await startHandshakeFunc();
         });
+
+        // Catch any errors that occur during handshake and push to an error to
+        // shellEventSubject
+        try {
+            await handShakePromise;
+            return true;
+        } catch(err) {
+            this.shellEventSubject.error(err);
+            return false;
+        }
     }
 
     private async buildSyn(): Promise<KeysplittingMessage<Syn>> {
         this.currentIdToken = await this.authConfigService.getIdToken();
 
         const synPayload: SynPayload = {
-            targetUser: "ec2-user"
-        }
-        
+            targetUser: this.targetUser
+        };
+
         const synMessage: Syn = {
-            timestamp: "",
-            schemaVersion: "",
+            timestamp: '',
+            schemaVersion: this.keySplittingService.keysplittingVersion(),
             type: keysplittingType.Syn,
             action: shellAction.Open,
             actionPayload: Buffer.from(JSON.stringify(synPayload)).toString('base64'), // base64 encoded bytes
-            targetId: "",
+            targetId: this.targetInfo.agentPublicKey,
             nonce: this.keySplittingService.randomBytes(32).toString('base64'),
             bZCert: await (this.keySplittingService.getBZECert(this.currentIdToken))
-        }
+        };
 
         const ksMessage: KeysplittingMessage<Syn> = {
             type: keysplittingType.Syn,
             keysplittingPayload: synMessage,
             signature: await this.keySplittingService.signHelper(Utils.JSONstringifyOrder(synMessage))
-        }
-        return ksMessage
+        };
+
+        return ksMessage;
     }
 
     private async sendShellOpen(): Promise<KeysplittingMessage<Data>> {
         this.currentIdToken = await this.authConfigService.getIdToken();
-        // const dataPayload: ShellInputPayload = {
-        //     data: data
-        // }
-
-        // this.logger.info("IS THIS WORKING"+JSON.stringify(dataPayload))
 
         const dataMessage: Data = {
-            timestamp: "",
-            schemaVersion: "",
+            timestamp: '',
+            schemaVersion: this.keySplittingService.keysplittingVersion(),
             type: keysplittingType.Data,
             action: shellAction.Open,
-            actionPayload: "", //Buffer.from(JSON.stringify(dataPayload)).toString('base64'), // base64 encoded bytes
-            targetId: "",
-            hPointer: "", // this.hPointer,
+            actionPayload: '',
+            targetId: this.targetInfo.agentPublicKey,
+            hPointer: this.lastAckHPointer,
             bZCertHash: await this.keySplittingService.getBZECertHash(this.currentIdToken)
-        }
+        };
 
         const ksMessage: KeysplittingMessage<Data> = {
             type: keysplittingType.Data,
             keysplittingPayload: dataMessage,
             signature: await this.keySplittingService.signHelper(Utils.JSONstringifyOrder(dataMessage))
-        }
+        };
 
-        this.logger.info(JSON.stringify(ksMessage));
+        this.sendDataMessage(ksMessage);
 
-        this.sendMessage<KeysplittingMessage<Data>>(ksMessage);
-
-        return ksMessage
-        // targetId: string,
-        // hPointer: string,
-        // bZCertHash: string,
-        // actionPayload: string, // base64 encoded bytes
-    }
-
-    private async initDataChannel() {
-        const synMessage = await this.buildSyn();
-        this.logger.info("SYN: " + JSON.stringify(synMessage))
-
-        const openDCMessage: OpenDataChannelPayload = {
-            action: shellAction.Open,
-            syn: Buffer.from(JSON.stringify(synMessage)).toString('base64')
-        }
-
-        //const mBytes = new TextEncoder().encode(JSON.stringify(openDCMessage))
-        const agentMessage : AgentMessage = {
-            channelId: this.dataChannelId,
-            messageType: "openDataChannel",
-            schemaVersion: "",
-            messagePayload: Buffer.from(JSON.stringify(openDCMessage)).toString('base64')
-        }
-
-        // this.synShellOpenMessageHPointer = this.keySplittingService.getHPointer(synMessage.synPayload.payload);
-        // await this.sendMessage<OpenDataChannelMessage>(openDCMessage);
-        await this.sendWebsocketMessage(DaemonHubOutgoingMessages.openDataChannel, agentMessage);
+        return ksMessage;
     }
 
     private async handleAgentMessage(message: AgentMessage) {
-        this.logger.info(`WE GOT SOMETHING ${JSON.stringify(message)}`)
-        const messagePayload = Buffer.from(message.messagePayload, 'base64').toString()
-        const parsedMessage = JSON.parse(messagePayload);
+        // turn our agent message MessagePayload into an object we can read
+        const messagePayloadDecoded = Buffer.from(message.messagePayload, 'base64').toString();
+        const messagePayload = JSON.parse(messagePayloadDecoded);
 
         switch (message.messageType) {
-            case agentMessageType.error:
-                this.logger.error(parsedMessage.type + ": " + parsedMessage.message);
-                // if the parsed message type is a keysplitting error, then we want to resend syn
-                break;
-            case agentMessageType.keysplitting:
-                this.logger.info("WE GOT A KEYPSPLITTING MESSAGE");
-                switch(parsedMessage.type) {
-                    case keysplittingType.SynAck:
-                        this.logger.error("WE GOT A SYNACK");
-                        //let synack: SynAck = JSON.parse(Buffer.from(parsedMessage.keysplittingPayload, 'base64').toString())
-                        // let msg = Buffer.from(parsedMessage.keysplittingPayload, 'base64').toString()
-                        // this.hPointer = await this.keySplittingService.getHPointer(msg);
-                        this.sendShellOpen();
-                        break;
-                    case keysplittingType.DataAck:
-                        this.logger.error("WE GOT A DATAACK");
-                        this.logger.error("this is the end of lucie's test");
-                        break;
-                    default:
-                        this.logger.error("Recieved an unrecognized keysplitting message type " + parsedMessage.type)
+        case agentMessageType.error:
+            this.logger.error(`${messagePayload.type}: ${messagePayload.message}`);
+            // TODO: handle certain types of errors without force closing the shell connection?
+            this.shellEventSubject.error('Fatal protocol error occurred. The connection must be closed.');
+            break;
+        case agentMessageType.keysplitting:
+
+            this.logger.debug(`Received keysplitting message: ${messagePayload.type}`);
+            const keysplittingMessage = messagePayload as KeysplittingMessage<any>;
+
+            // Validate signature on all keysplitting messages
+            if (await this.keySplittingService.validateSignature(keysplittingMessage.keysplittingPayload, keysplittingMessage.signature, this.targetPublicKey) != true) {
+                const errorString = `Error Validating Signature on ${messagePayload.type} message!`;
+                this.logger.error(errorString);
+                throw new Error(errorString);
+            }
+
+            switch(messagePayload.type) {
+            case keysplittingType.SynAck:
+                const synAck = keysplittingMessage.keysplittingPayload as SynAck;
+
+                // check to see if this is a message we sent
+                const hPointer = synAck.hPointer;
+                if (hPointer != this.expectedHPointer) {
+                    this.isActiveClient = false; // we're no longer the one actively sending input
+                    this.shellEventSubject.next({ type: ShellEventType.Unattached});
+                    return;
+                } else {
+                    // if this is in response to something we sent, then we are the active client now
+                    this.isActiveClient = true;
+                }
+
+                this.logger.debug('isActiveClient: '+ this.isActiveClient);
+
+                // calculate the hash of the syn/ack
+                this.lastAckHPointer = await this.keySplittingService.getHPointer(synAck);
+
+                if (this.attaching) {
+                    // if we're attaching then we need to get shell state by
+                    // sending a replay data message
+                    this.attaching = false;
+                    this.sendShellReplay();
+                } else if(this.refreshingBZCert) {
+                    // if we are refreshing the bzcert then we are done once we
+                    // receive the syn/ack
+                    this.refreshingBZCert = false;
+                    this.keysplittingHandshakeCompleteSubject.next(true);
+                }  else {
+                    // if we're not attaching or refreshing, we're opening a new
+                    // shell on the target
+                    this.sendShellOpen();
                 }
                 break;
-            case agentMessageType.stream:
-                this.logger.info("WE GOT A STREAM MESSAGE");
+            case keysplittingType.DataAck:
+                const dataAckPayload = keysplittingMessage.keysplittingPayload as DataAck;
+
+                // if we're not the active client we ignore all data/acks
+                if (this.isActiveClient) {
+
+                    this.logger.debug(`Received data ack message for action: ${dataAckPayload.action}`);
+
+                    // Set lastAckHPointer to the most recent data/ack received
+                    this.lastAckHPointer = await this.keySplittingService.getHPointer(messagePayload.keysplittingPayload);
+
+                    switch(dataAckPayload.action) {
+                    case shellAction.Replay:
+                        this.outputSubject.next(dataAckPayload.actionResponsePayload);
+                        this.keysplittingHandshakeCompleteSubject.next(true);
+                        // Ready to start processing stdin
+                        this.shellEventSubject.next({ type: ShellEventType.Start });
+                        break;
+                    case shellAction.Open:
+                        this.keysplittingHandshakeCompleteSubject.next(true);
+                        // Ready to start processing stdin
+                        this.shellEventSubject.next({ type: ShellEventType.Start });
+                        break;
+                    case shellAction.Close:
+                        break;
+                    case shellAction.Input:
+                    case shellAction.Resize:
+                        await this.handleShellInputOrResizeDataAck(messagePayload.keysplittingPayload);
+                        break;
+                    default:
+                        throw new Error(`Unrecognized data ack action: ${dataAckPayload.action}`);
+                    }
+                }
                 break;
             default:
-                this.logger.error("WE'RE VERY FANCY RIGHT NOW")
+                this.logger.error('Received an unrecognized keysplitting message type ' + messagePayload.type);
+            }
+            break;
+
+        case agentMessageType.stream:
+            switch (messagePayload.type) {
+            case steamMessageType.ShellQuit:
+                this.shellEventSubject.next({ type: ShellEventType.Disconnect });
+                await this.dispose();
+                break;
+            case steamMessageType.ShellStdOut:
+                this.outputSubject.next(messagePayload.content);
+                break;
+            default:
+                this.logger.error(`Unrecognized Agent Stream Message Type: ${messagePayload.type}`);
+            }
+            break;
+        default:
+            this.logger.error(`Unrecognized Agent Message Type: ${message.messageType}`);
         }
-
-        // try {
-        //     this.logger.debug(`Received SynAck message: ${JSON.stringify(synAckMessage)}`);
-
-        //     // For now we only only a single client to be attached to the shell
-        //     // at a time so if we see another synack message we dont recognize
-        //     // immediately disconnect
-        //     if (synAckMessage.synAckPayload.payload.hPointer != this.synShellOpenMessageHPointer) {
-        //         this.logger.debug('[SynAck] received message from another client.');
-        //         this.isActiveClient = false;
-        //         this.shellEventSubject.next({ type: ShellEventType.Unattached});
-        //         return;
-        //     }
-
-        //     // For out SynAck message we need to set the public key of the target
-        //     const pubkey = synAckMessage.synAckPayload.payload.targetPublicKey;
-        //     this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
-
-        //     // Validate our signature
-        //     if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
-        //         const errorString = '[SynAck] Error Validating Signature!';
-        //         this.logger.error(errorString);
-        //         throw new Error(errorString);
-        //     }
-
-        //     this.synAckShellOpenMessageHPointer = this.keySplittingService.getHPointer(synAckMessage.synAckPayload.payload);
-        //     this.lastAckHPointer = this.synAckShellOpenMessageHPointer;
-        //     this.isActiveClient = true;
-
-        //     await this.sendShellOpenDataMessage();
-        // } catch(e) {
-        //     this.logger.error(`Error in handleSynAck: ${e}`);
-        // }
     }
-    
-    private async sendMessage<TReq>(message: TReq) {
+
+    private async sendSynMessage() {
+        const synMessage = await this.buildSyn();
+        this.expectedHPointer = this.keySplittingService.getHPointer(synMessage.keysplittingPayload);
+        await this.sendAgentMessage(synMessage);
+    }
+
+    private async sendDataMessage(dataMessage: KeysplittingMessage<Data>) {
+        this.expectedHPointer = this.keySplittingService.getHPointer(dataMessage.keysplittingPayload);
+        this.outgoingShellMessages[this.expectedHPointer] = dataMessage;
+
+        await this.sendAgentMessage(dataMessage);
+    }
+
+    private async sendAgentMessage<TReq>(message: TReq) {
         // wrap our message in an Agent Message
         const agentMessage : AgentMessage = {
             channelId: this.dataChannelId,
-            messageType: "keysplitting",
-            schemaVersion: "",
+            messageType: 'keysplitting',
+            schemaVersion: '',
             messagePayload: Buffer.from(JSON.stringify(message)).toString('base64')
-        }
-        // this.logger.debug(`Sending message: ${JSON.stringify(message)}`);
+        };
 
         await this.sendWebsocketMessage(DaemonHubOutgoingMessages.shellMessage, agentMessage);
     }
@@ -395,56 +447,131 @@ export class ShellWebsocketService
     private async handleInput(data: string): Promise<void> {
         this.logger.debug(`got new input ${data}`);
 
-        // Check whether current BZCert's idtoken has been refreshed
-        // If yes we need to perform a new handshake before sending data
-        const IdToken = await this.authConfigService.getIdToken();
-        if (this.currentIdToken !== IdToken){
-            this.logger.debug(`Current id token has expired, requesting new and performing new mrzap handshake`);
-            await this.performMrZAPHandshake();
-        }
-        
-        const dataMessage = await this.keySplittingService.buildDataMessage(
-            "",
-            "shell/input",
-            this.currentIdToken,
-            data,
-            "this.lastAckHPointer"
-        );
-
-        this.sendMessage<DataMessageWrapper>(dataMessage);
-
         // Skip new input messages if we are not the active client
-        // if(! this.isActiveClient) {
-        //     this.logger.debug(`[handleInput] received when not active client...skipping.`);
-        //     return;
-        // }
+        if(! this.isActiveClient) {
+            this.logger.debug(`[handleInput] received when not active client...skipping.`);
+            return;
+        }
 
-        // const inputPayload = data;
+        const actionPayload: ShellInputPayload = {
+            data: Buffer.from(data).toString('base64')
+        };
 
-        // // Add to input message buffer
-        // const shellInput: ShellMessage = {
-        //     inputType: ShellActions.Input,
-        //     inputPayload: inputPayload,
-        //     seqNum: this.sequenceNumber++,
-        // };
-        // this.inputMessageBuffer.push(shellInput);
+        const ksPayload: Data = {
+            timestamp: Date.now().toString(),
+            schemaVersion: this.keySplittingService.keysplittingVersion(),
+            type: keysplittingType.Data,
+            action: shellAction.Input,
+            actionPayload: Utils.JSONstringifyOrder(actionPayload).toString('base64'),
+            targetId: this.targetInfo.agentPublicKey,
+            hPointer: undefined, // will be set before sending
+            bZCertHash: await this.keySplittingService.getBZECertHash(this.currentIdToken)
+        };
 
-        // await this.processInputMessageQueue();
+        const ksMessage: KeysplittingMessage<Data> = {
+            type: keysplittingType.Data,
+            keysplittingPayload: ksPayload,
+            signature: await this.keySplittingService.signHelper(Utils.JSONstringifyOrder(ksPayload))
+        };
+
+        this.inputMessageBuffer.push(ksMessage);
+        await this.processInputMessageQueue();
     }
+
+
+    private async processInputMessageQueue() {
+        // currentInputMessage is empty (we already received the data ack for
+        // the previous input message) AND we have more to send
+        if (!this.currentInputMessage && this.inputMessageBuffer.length > 0) {
+            this.currentInputMessage = this.inputMessageBuffer[0];
+
+            // Check whether current BZCert's idtoken has been refreshed
+            // If yes we need to perform a new handshake before sending data
+            const IdToken = await this.authConfigService.getIdToken();
+            if (this.currentIdToken != IdToken) {
+                this.logger.debug(`Current id token has been refreshed, sending new syn message`);
+                this.refreshingBZCert = true;
+                if( ! await this.performMrZapHandshake(() => this.sendSynMessage())) return;
+            }
+
+            // Add hpointer and signature to the input data message before sending
+            this.currentInputMessage.keysplittingPayload.hPointer = this.lastAckHPointer;
+            this.currentInputMessage.signature = await this.keySplittingService.signHelper(Utils.JSONstringifyOrder(this.currentInputMessage.keysplittingPayload));
+
+            await this.sendDataMessage(this.currentInputMessage);
+        }
+    }
+
+    private async handleShellInputOrResizeDataAck(dataAckMessage: DataAck) {
+        const hPointer = dataAckMessage.hPointer;
+        const inputMessage = this.outgoingShellMessages[hPointer];
+
+        if(! inputMessage) {
+            this.logger.error(`Unrecognized shell input data ack with hpointer ${hPointer}`);
+            return;
+        }
+
+        if (inputMessage != this.currentInputMessage) {
+            this.logger.error('Data ack is not for not the current input message');
+            return;
+        }
+
+        // Remove from outgoing message map and input message buffer
+        this.currentInputMessage = undefined;
+        this.inputMessageBuffer.shift();
+        delete this.outgoingShellMessages[dataAckMessage.hPointer];
+
+        await this.processInputMessageQueue();
+    }
+
+    private async handleResize(terminalSize: TerminalSize): Promise<void> {
+        this.logger.debug(`New terminal resize event (rows: ${terminalSize.rows} cols: ${terminalSize.columns})`);
+
+        // Skip new resize messages if we are not the active client
+        if(! this.isActiveClient) {
+            this.logger.debug(`[handleResize] received when not active client...skipping.`);
+            return;
+        }
+
+        const actionPayload: ShellResizePayload = {
+            rows: terminalSize.rows,
+            cols: terminalSize.columns
+        };
+
+        const ksPayload: Data = {
+            timestamp: Date.now().toString(),
+            schemaVersion: this.keySplittingService.keysplittingVersion(),
+            type: keysplittingType.Data,
+            action: shellAction.Resize,
+            actionPayload: Utils.JSONstringifyOrder(actionPayload).toString('base64'),
+            targetId: this.targetInfo.agentPublicKey,
+            hPointer: undefined, // will be set before sending
+            bZCertHash: await this.keySplittingService.getBZECertHash(this.currentIdToken)
+        };
+
+        const ksMessage: KeysplittingMessage<Data> = {
+            type: keysplittingType.Data,
+            keysplittingPayload: ksPayload,
+            signature: await this.keySplittingService.signHelper(Utils.JSONstringifyOrder(ksPayload))
+        };
+
+        this.inputMessageBuffer.push(ksMessage);
+
+        await this.processInputMessageQueue();
+    }
+
 
     public async dispose() : Promise<void>
     {
         await this.destroyConnection();
-        // this.inputSubscription.unsubscribe();
-        // this.resizeSubscription.unsubscribe();
-        // this.shellEventSubject.complete();
+        this.inputSubscription.unsubscribe();
+        this.resizeSubscription.unsubscribe();
+        this.shellEventSubject.complete();
     }
 
     private async sendWebsocketMessage(methodName: string, message: AgentMessage): Promise<void> {
         if(this.websocket === undefined || this.websocket.state == HubConnectionState.Disconnected)
             throw new Error('Hub disconnected');
-
-        this.logger.info("TRYING TO SEND SOMETHING");
 
         await this.websocket.invoke(methodName, message);
     }
@@ -456,15 +583,12 @@ export class ShellWebsocketService
 
         const connectionUrl = `${this.connectionNodeParameters.connectionServiceUrl}hub/daemon/${queryString}`;
 
-        this.logger.info("connecting with endpoint: " + connectionUrl)
+        this.logger.debug('connecting with endpoint: ' + connectionUrl);
 
         return new HubConnectionBuilder()
-            .withUrl(
-                connectionUrl,
-                { accessTokenFactory: async () => await this.authConfigService.getIdToken()}
-            )
+            .withUrl(connectionUrl)
             .withAutomaticReconnect([100, 1000, 10000, 30000, 60000]) // retry times in ms
-            .configureLogging(new SignalRLogger(this.logger, LogLevel.Debug))
+            .configureLogging(new SignalRLogger(this.logger, LogLevel.Warning))
             .build();
     }
 
@@ -475,5 +599,30 @@ export class ShellWebsocketService
             await this.websocket.stop();
             this.websocket = undefined;
         }
+    }
+
+    public async sendShellReplay() {
+        this.logger.debug('Sending shell replay data message');
+
+        const actionPayload: ShellReplayPayload = {};
+
+        const ksPayload: Data = {
+            timestamp: Date.now().toString(),
+            schemaVersion: this.keySplittingService.keysplittingVersion(),
+            type: keysplittingType.Data,
+            action: shellAction.Replay,
+            actionPayload: Utils.JSONstringifyOrder(actionPayload).toString('base64'),
+            targetId: this.targetInfo.agentPublicKey,
+            hPointer: this.lastAckHPointer,
+            bZCertHash: await this.keySplittingService.getBZECertHash(this.currentIdToken)
+        };
+
+        const ksMessage: KeysplittingMessage<Data> = {
+            type: keysplittingType.Data,
+            keysplittingPayload: ksPayload,
+            signature: await this.keySplittingService.signHelper(Utils.JSONstringifyOrder(ksPayload))
+        };
+
+        await this.sendDataMessage(ksMessage);
     }
 }

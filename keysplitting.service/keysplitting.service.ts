@@ -27,6 +27,10 @@ export class KeySplittingService {
         await this.loadKeys();
     }
 
+    public keysplittingVersion(): string {
+        return '1.1';
+    }
+
     public setInitialIdToken(latestIdToken: string): void {
         this.data.initialIdToken = latestIdToken;
         this.config.updateKeySplitting(this.data);
@@ -81,7 +85,7 @@ export class KeySplittingService {
         return this.hashHelper(Utils.JSONstringifyOrder(message)).toString('base64');
     }
 
-    public async validateSignature<T>(message: KeySplittingMessage<T>, targetPublicKey: ed.Point): Promise<boolean> {
+    public async validateSsmAgentSignature<T>(message: KeySplittingMessage<T>, targetPublicKey: ed.Point): Promise<boolean> {
         if (targetPublicKey == undefined) {
             throw new Error('Error validating message! Target Public Key is undefined!');
         }
@@ -90,6 +94,20 @@ export class KeySplittingService {
         const toValidate: Buffer = this.hashHelper(Utils.JSONstringifyOrder(message.payload));
         const signature: Buffer = Buffer.from(message.signature, 'base64');
         if (await ed.verify(signature, toValidate, targetPublicKey)) {
+            return true;
+        }
+        return false;
+    }
+
+    public async validateSignature(messagePayload: Object, sig: string,  agentPublicKey: ed.Point): Promise<boolean> {
+        if (agentPublicKey == undefined) {
+            throw new Error('Error validating message! Target Public Key is undefined!');
+        }
+
+        // Validate the signature
+        const toValidate: Buffer = this.hashHelper(Utils.JSONstringifyOrder(messagePayload));
+        const signature: Buffer = Buffer.from(sig, 'base64');
+        if (await ed.verify(signature, toValidate, agentPublicKey)) {
             return true;
         }
         return false;
@@ -122,6 +140,17 @@ export class KeySplittingService {
             },
             signature: ''
         };
+
+        // Timestamp     string `json:"timestamp"` // Unix time
+        // SchemaVersion string `json:"schemaVersion"`
+        // Type          string `json:"type"`
+        // Action        string `json:"action"`
+
+        // // Unique to Data Payload
+        // TargetId      string `json:"targetId"`
+        // HPointer      string `json:"hPointer"`
+        // BZCertHash    string `json:"bZCertHash"`
+        // ActionPayload []byte `json:"actionPayload"`
 
         // Then calculate our signature
         const signature = await this.signMessagePayload<DataMessagePayload>(dataMessage);
