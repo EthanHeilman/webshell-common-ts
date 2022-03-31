@@ -437,7 +437,7 @@ export class ShellWebsocketService
         const agentMessage : AgentMessage = {
             channelId: this.dataChannelId,
             messageType: 'keysplitting',
-            schemaVersion: '',
+            schemaVersion: this.keySplittingService.keysplittingVersion(),
             messagePayload: Buffer.from(JSON.stringify(message)).toString('base64')
         };
 
