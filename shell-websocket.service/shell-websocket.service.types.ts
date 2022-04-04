@@ -12,7 +12,7 @@ export interface IShellWebsocketService extends IDisposableAsync{
 export enum ShellEventType {
     Start = 'Start',
     Disconnect = 'Disconnect',
-    Delete = 'Delete',
+    Closed = 'Closed',
     Ready = 'Ready',
     Unattached = 'Unattached',
     BrokenWebsocket = 'BrokenWebsocket'
@@ -38,6 +38,11 @@ export interface ConnectionNodeParameters
 {
     authToken: string;
     connectionServiceUrl: string;
+}
+
+export interface WebsocketResponse {
+    error: boolean;
+    errorMessage: string;
 }
 
 export const DaemonHubIncomingMessages = {

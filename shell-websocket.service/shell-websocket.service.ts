@@ -1,7 +1,7 @@
 
 import { Observable, Subject, Subscription } from 'rxjs';
 import { timeout } from 'rxjs/operators';
-import {DaemonHubOutgoingMessages, ShellEvent, ShellEventType, DaemonHubIncomingMessages, TerminalSize, ConnectionNodeParameters} from './shell-websocket.service.types';
+import {DaemonHubOutgoingMessages, ShellEvent, ShellEventType, DaemonHubIncomingMessages, TerminalSize, ConnectionNodeParameters, WebsocketResponse} from './shell-websocket.service.types';
 
 import { AuthConfigService } from '../auth-config-service/auth-config.service';
 import { ILogger } from '../logging/logging.types';
@@ -168,9 +168,14 @@ export class ShellWebsocketService
         this.websocket = await this.createConnection();
 
         // this is called if the server closes the websocket
-        this.websocket.onclose(() => {
-            this.logger.debug('websocket closed by server');
-            this.shellEventSubject.next({ type: ShellEventType.Disconnect });
+        this.websocket.onclose((error) => {
+            this.logger.debug(`websocket onclose event: ${error}`);
+
+            if(error === undefined) {
+                this.shellEventSubject.next({ type: ShellEventType.Closed });
+            } else {
+                this.shellEventSubject.next({ type: ShellEventType.Disconnect });
+            }
         });
 
         this.websocket.onreconnecting(_ => {
@@ -312,7 +317,7 @@ export class ShellWebsocketService
         case agentMessageType.error:
             this.logger.error(`${messagePayload.type}: ${messagePayload.message}`);
             // TODO: handle certain types of errors without force closing the shell connection?
-            this.shellEventSubject.error('Fatal protocol error occurred. The connection must be closed.');
+            this.handleErrorAndClose(`Protocol Error: ${messagePayload.message}.`);
             break;
         case agentMessageType.keysplitting:
 
@@ -404,7 +409,7 @@ export class ShellWebsocketService
         case agentMessageType.stream:
             switch (messagePayload.type) {
             case steamMessageType.ShellQuit:
-                this.shellEventSubject.next({ type: ShellEventType.Disconnect });
+                this.shellEventSubject.next({ type: ShellEventType.Closed });
                 await this.dispose();
                 break;
             case steamMessageType.ShellStdOut:
@@ -573,7 +578,12 @@ export class ShellWebsocketService
         if(this.websocket === undefined || this.websocket.state == HubConnectionState.Disconnected)
             throw new Error('Hub disconnected');
 
-        await this.websocket.invoke(methodName, message);
+        const response = await this.websocket.invoke<WebsocketResponse>(methodName, message);
+
+        if(response && response.error) {
+            this.logger.error(`Error invoking ${methodName}: ${response.errorMessage}`);
+            this.handleErrorAndClose(response.errorMessage);
+        }
     }
 
     private async createConnection(): Promise<HubConnection> {
@@ -590,6 +600,11 @@ export class ShellWebsocketService
             .withAutomaticReconnect([100, 1000, 10000, 30000, 60000]) // retry times in ms
             .configureLogging(new SignalRLogger(this.logger, LogLevel.Warning))
             .build();
+    }
+
+    private async handleErrorAndClose(errorMsg: string) {
+        this.shellEventSubject.error(`Error ${errorMsg}. Closing connection.`);
+        await this.destroyConnection();
     }
 
     private async destroyConnection() {
