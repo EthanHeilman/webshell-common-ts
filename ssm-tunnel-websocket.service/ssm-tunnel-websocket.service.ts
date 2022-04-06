@@ -299,16 +299,18 @@ export class SsmTunnelWebsocketService
     }
 
     private async createConnection(): Promise<HubConnection> {
-        this.logger.info('using session id' + this.authConfigService.getSessionId());
-        // sessionId is for user authentication
-        const queryString = `?session_id=${this.authConfigService.getSessionId()}`;
-        const connectionUrl = `${this.authConfigService.getServiceUrl()}hub/ssm-tunnel/${queryString}`;
+        const connectionUrl = `${this.authConfigService.getServiceUrl()}hub/ssm-tunnel/`;
+        const sessionIdCookie = `${this.authConfigService.getSessionIdCookieName()}=${this.authConfigService.getSessionId()}`;
+        const sessionTokenCookie = `${this.authConfigService.getSessionTokenCookieName()}=${this.authConfigService.getSessionToken()}`;
 
         const connectionBuilder = new HubConnectionBuilder();
         connectionBuilder
             .withUrl(
                 connectionUrl,
-                { accessTokenFactory: async () => await this.authConfigService.getIdToken()}
+                {
+                    accessTokenFactory: async () => await this.authConfigService.getIdToken(),
+                    headers: {'cookie': `${sessionIdCookie}; ${sessionTokenCookie}`}
+                }
             )
             .configureLogging(new SignalRLogger(this.logger, LogLevel.Warning));
         return connectionBuilder.build();
