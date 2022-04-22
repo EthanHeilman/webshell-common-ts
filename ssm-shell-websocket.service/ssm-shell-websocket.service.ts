@@ -1,7 +1,7 @@
 import { Observable, Subject, Subscription } from 'rxjs';
 import * as ed from 'noble-ed25519';
 import { timeout } from 'rxjs/operators';
-import { ConnectionNodeParameters, ShellEvent, ShellEventType, ShellHubIncomingMessages, ShellHubOutgoingMessages, TerminalSize } from './shell-websocket.service.types';
+import { ConnectionNodeParameters, ShellEvent, ShellEventType, ShellHubIncomingMessages, ShellHubOutgoingMessages, TerminalSize } from './ssm-shell-websocket.service.types';
 
 import { AuthConfigService } from '../auth-config-service/auth-config.service';
 import { ILogger } from '../logging/logging.types';
@@ -26,7 +26,7 @@ export function isAgentKeysplittingReady(agentVersion: string): boolean {
 
 const KeysplittingHandshakeTimeout = 45; // in seconds
 
-export class ShellWebsocketService
+export class SsmShellWebsocketService
 {
     private websocket : HubConnection;
 
@@ -296,6 +296,7 @@ export class ShellWebsocketService
     }
 
     private async processInputMessageQueue() {
+        // currentInputMessage is empty AND we have more to send
         if (! this.currentInputMessage && this.inputMessageBuffer.length > 0) {
             this.currentInputMessage = this.inputMessageBuffer[0];
 
@@ -348,6 +349,7 @@ export class ShellWebsocketService
             await this.performKeysplittingHandshake();
             return;
         }
+
         const shellOpenDataPayload = {};
         const dataMessage = await this.keySplittingService.buildDataMessage(
             this.targetInfo.agentId,
@@ -421,6 +423,7 @@ export class ShellWebsocketService
             }
 
             // For out SynAck message we need to set the public key of the target
+            // TODO: Get public key from target information
             const pubkey = synAckMessage.synAckPayload.payload.targetPublicKey;
             this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
 
