@@ -1,10 +1,11 @@
+import { OptionalPort, RequiredPort } from '../../types/port.types';
 import { TargetBase } from '../../types/targetBase.types';
 
 export interface WebTargetSummary extends TargetBase {
     lastAgentUpdate: Date;
-    localPort: number;
+    localPort: OptionalPort;
     localHost: string;
-    remotePort: number;
+    remotePort: RequiredPort;
     remoteHost: string;
     proxyTargetId: string;
 }

@@ -1,3 +1,5 @@
+import { OptionalPort, RequiredPort } from '../../types/port.types';
+
 export interface EditDbTargetRequest {
     /**
      * Name of the target.
@@ -14,7 +16,7 @@ export interface EditDbTargetRequest {
     /**
      * Port to use on the target.
      */
-    remotePort?: number;
+    remotePort?: RequiredPort;
     /**
      * Local hostname or IP address to use on zli for this connection.
      */
@@ -22,7 +24,7 @@ export interface EditDbTargetRequest {
     /**
      * Local port to use on zli for this connection.
      */
-    localPort?: number;
+    localPort?: OptionalPort;
     /**
      * Must specify either environmentId or environmentName.
      */
