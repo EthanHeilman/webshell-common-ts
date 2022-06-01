@@ -2,7 +2,7 @@
 import { TargetType } from '../../target/types/target.types';
 import { ConnectionState } from './connection-state.types';
 
-export interface ConnectionSummary {
+export interface ShellConnectionSummary {
      id: string;
      timeCreated : Date;
      spaceId : string;

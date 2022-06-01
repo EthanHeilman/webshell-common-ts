@@ -1,4 +1,4 @@
-import { ConnectionSummary } from '../../connection/types/connection-summary.types';
+import { ShellConnectionSummary } from '../../connection/types/shell-connection-summary.types';
 import { SpaceState } from './space-state.types';
 
 export interface SpaceSummary {
@@ -6,6 +6,6 @@ export interface SpaceSummary {
      displayName: string;
      timeCreated: Date;
      state: SpaceState;
-     connections: ConnectionSummary[];
+     connections: ShellConnectionSummary[];
      terminalPreferences: string;
  }
