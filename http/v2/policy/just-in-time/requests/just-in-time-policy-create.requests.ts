@@ -1,4 +1,3 @@
-import { Policy } from '../../types/policy.types';
 import { Group } from '../../types/group.types';
 import { Subject } from '../../types/subject.types';
 
@@ -21,9 +20,9 @@ export interface JustInTimePolicyCreateRequest {
       */
      description?: string;
      /**
-      * Policies this policy applies to.
+      * The ids of the policies this policy applies to.
       */
-     childPolicies: Policy[];
+     childPolicies: string[];
      /**
       * Flag that determines whether the creation of the policies will be automatically approved or based on request and approval from reviewers.
       */
