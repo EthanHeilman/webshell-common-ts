@@ -5,6 +5,7 @@ export interface CreateUniversalConnectionResponse {
     connectionId: string;
     targetId: string;
     targetType: TargetType;
+    targetUser: string;
     agentPublicKey: string;
     agentVersion: string;
     connectionAuthDetails: ShellConnectionAuthDetails;
