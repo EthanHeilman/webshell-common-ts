@@ -27,4 +27,8 @@ export interface JustInTimePolicyCreateRequest {
       * Flag that determines whether the creation of the policies will be automatically approved or based on request and approval from reviewers.
       */
      automaticallyApproved: boolean;
+     /**
+      * The amount of time (in minutes) after which the access granted by this Just In Time policy will expire.
+      */
+      duration: number;
  }
