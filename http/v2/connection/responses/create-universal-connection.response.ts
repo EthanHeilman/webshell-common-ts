@@ -9,4 +9,5 @@ export interface CreateUniversalConnectionResponse {
     agentPublicKey: string;
     agentVersion: string;
     connectionAuthDetails: ShellConnectionAuthDetails;
+    sshScpOnly?: boolean;
 }
