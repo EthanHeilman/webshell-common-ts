@@ -5,6 +5,7 @@ import * as CryptoJS from 'crypto-js';
 import { ILogger } from '../logging/logging.types';
 import { ConfigInterface, KeySplittingConfigSchema } from './keysplitting.service.types';
 import { BZECert, DataMessageWrapper, SynMessageWrapper, KeySplittingMessage, SynMessagePayload, DataMessagePayload } from './keysplitting-types';
+import { OrgBZCertValidationInfo } from '../http/v2/organization/types/organization-bzcert-validation-info.types';
 import Utils from '../utility/utils';
 
 export class KeySplittingService {
@@ -37,6 +38,14 @@ export class KeySplittingService {
         this.logger.debug('Updated latestIdToken');
     }
 
+    public setOrgBZCertValidationInfo(validationInfo: OrgBZCertValidationInfo): void {
+        this.data.orgIssuerId = validationInfo.orgIdpIssuerId;
+        this.data.orgProvider = validationInfo.orgIdpProvider;
+
+        // Update keysplitting config file
+        this.config.updateKeySplitting(this.data);
+    }
+
     public async getBZECert(currentIdToken: string): Promise<BZECert> {
         if (this.data.initialIdToken == undefined || this.data.publicKey == undefined || this.data.cerRand == undefined || this.data.cerRandSig == undefined)
             throw new Error('Undefined values in BZECert! Ensure you are logged in (zli login --Google/Microsoft).');
@@ -60,9 +69,6 @@ export class KeySplittingService {
         this.data.cerRand = cerRand.toString('base64');
         const cerRandSig = await this.signHelper(cerRand);
         this.data.cerRandSig = cerRandSig;
-
-        // Update our config
-        this.config.updateKeySplitting(this.data);
         this.logger.debug('Generated cerRand and cerRandSig');
     }
 
@@ -78,6 +84,10 @@ export class KeySplittingService {
         // Reset our keys and recreate them
         await this.generateKeys();
         await this.generateCerRand();
+
+        // Update keysplitting config file
+        this.config.updateKeySplitting(this.data);
+
         this.logger.debug('Reset keysplitting service');
     }
 
@@ -200,7 +210,6 @@ export class KeySplittingService {
         // Update our config
         this.data.privateKey = Buffer.from(this.privateKey).toString('base64');
         this.data.publicKey = Buffer.from(this.publicKey).toString('base64');
-        this.config.updateKeySplitting(this.data);
         this.logger.debug('Generated keysplitting keys');
     }
 

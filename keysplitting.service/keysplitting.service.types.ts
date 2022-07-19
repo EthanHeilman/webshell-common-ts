@@ -3,7 +3,9 @@ export interface KeySplittingConfigSchema {
     cerRand: string,
     cerRandSig: string,
     privateKey: string,
-    publicKey: string
+    publicKey: string,
+    orgIssuerId: string,
+    orgProvider: string
 }
 
 export function getDefaultKeysplittingConfig(): KeySplittingConfigSchema {
@@ -12,7 +14,9 @@ export function getDefaultKeysplittingConfig(): KeySplittingConfigSchema {
         cerRand: undefined,
         cerRandSig: undefined,
         privateKey: undefined,
-        publicKey: undefined
+        publicKey: undefined,
+        orgIssuerId: undefined,
+        orgProvider: undefined
     };
 }
 
