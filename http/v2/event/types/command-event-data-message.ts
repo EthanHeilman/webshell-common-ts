@@ -12,5 +12,7 @@ export interface CommandEventDataMessage {
     organizationId: string;
     timestamp: Date;
     targetUser: string;
+    environmentId: string;
+    environmentName: string;
     command: string;
  }

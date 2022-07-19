@@ -15,6 +15,8 @@ export interface ConnectionEventDataMessage {
      targetName: string;
      targetUser: string;
      timestamp: Date;
+     environmentId: string;
+     environmentName: string;
      connectionEventType: ConnectionEventType;
      reason: string;
  }
