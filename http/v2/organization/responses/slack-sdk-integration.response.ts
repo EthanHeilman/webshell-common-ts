@@ -1,4 +1,4 @@
-import { SlackSDKTeam } from "../types/SlackSDKTeam";
+import { SlackSDKTeam } from '../types/SlackSDKTeam';
 
 export interface SlackSDKIntegrationResponse{
     ok: boolean;
