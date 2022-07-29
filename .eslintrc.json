@@ -21,7 +21,10 @@
         "indent": ["error", 4],
         "no-trailing-spaces": ["error"],
         "quotes": ["error", "single", { "allowTemplateLiterals": true }],
-        "semi": ["error", "always"],
+        // note you must disable the base rule as it can report incorrect errors
+        // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/semi.md
+        "semi": "off",
+        "@typescript-eslint/semi": ["error"],
         "no-var": ["error"],
         "prefer-const": ["error"],
         "@typescript-eslint/no-unused-vars": "off",
