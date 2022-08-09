@@ -3,7 +3,7 @@ import * as ed from 'noble-ed25519';
 import * as CryptoJS from 'crypto-js';
 
 import { ILogger } from '../logging/logging.types';
-import { ConfigInterface, KeySplittingConfigSchema } from './keysplitting.service.types';
+import { ConfigInterface, getDefaultKeysplittingConfig, KeySplittingConfigSchema } from './keysplitting.service.types';
 import { BZECert, DataMessageWrapper, SynMessageWrapper, KeySplittingMessage, SynMessagePayload, DataMessagePayload } from './keysplitting-types';
 import { OrgBZCertValidationInfo } from '../http/v2/organization/types/organization-bzcert-validation-info.types';
 import Utils from '../utility/utils';
@@ -81,6 +81,9 @@ export class KeySplittingService {
     }
 
     public async generateKeysplittingLoginData(): Promise<void> {
+        // reset config data
+        this.data = getDefaultKeysplittingConfig();
+
         // Reset our keys and recreate them
         await this.generateKeys();
         await this.generateCerRand();
