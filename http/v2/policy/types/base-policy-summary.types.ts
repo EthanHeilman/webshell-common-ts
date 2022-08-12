@@ -19,6 +19,12 @@ export interface BasePolicySummary {
      * Description of policy.
      */
     description: string;
+
+    /**
+     * The time this policy expires.
+     */
+    timeExpires?: Date;
+
     /**
      * Users and API Keys that this policy applies to.
      */
