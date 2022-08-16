@@ -3,5 +3,6 @@ export enum PolicyType {
     OrganizationControls = 'OrganizationControls',
     SessionRecording = 'SessionRecording',
     Kubernetes = 'Kubernetes',
-    Proxy = 'Proxy'
+    Proxy = 'Proxy',
+    JustInTime = 'JustInTime'
  };
