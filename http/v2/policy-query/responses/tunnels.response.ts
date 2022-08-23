@@ -4,4 +4,5 @@ export interface SshTargetsResponse {
     guid: string;
     targetName: string;
     targetUsers: TargetUser[];
+    environmentName?: string;
 }

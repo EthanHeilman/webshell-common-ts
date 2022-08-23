@@ -5,4 +5,5 @@ export interface CreateUniversalSshConnectionRequest {
     targetUser: string;
     remoteHost: string;
     remotePort: number;
+    environmentName?: string;
 }
