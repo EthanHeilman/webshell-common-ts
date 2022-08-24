@@ -1,17 +1,9 @@
+import { BaseConnectionSummary } from '../types/base-connection-summary.types';
 
-import { TargetType } from '../../target/types/target.types';
-import { ConnectionState } from './connection-state.types';
-
-export interface ShellConnectionSummary {
-     id: string;
-     timeCreated : Date;
+export interface ShellConnectionSummary extends BaseConnectionSummary {
      spaceId : string;
-     state : ConnectionState;
-     targetId : string;
-     targetType : TargetType;
      targetUser : string;
      sessionRecordingAvailable : boolean;
      sessionRecording : boolean;
      inputRecording : boolean;
-     subjectId : string;
  }
