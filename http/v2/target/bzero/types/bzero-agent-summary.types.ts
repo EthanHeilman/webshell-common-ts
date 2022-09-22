@@ -1,6 +1,7 @@
 import { TargetUser } from '../../../policy/types/target-user.types';
 import { Verb } from '../../../policy/types/verb.types';
 import { TargetStatus } from '../../types/targetStatus.types';
+import { ControlChannelSummary } from '../../control-channel-summary.types';
 
 export interface BzeroAgentSummary {
     id: string;
@@ -13,4 +14,5 @@ export interface BzeroAgentSummary {
     agentPublicKey: string;
     allowedTargetUsers: TargetUser[];
     allowedVerbs: Verb[];
+    controlChannel: ControlChannelSummary;
 }
