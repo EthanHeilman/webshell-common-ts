@@ -1,3 +1,7 @@
 export interface GenerateCertificateRequest {
-    // TODO: fill it in
+    targetNames: string[]
+    targetIds: string[]
+    envName?: string
+    envId?: string
+    shard: string
 }
