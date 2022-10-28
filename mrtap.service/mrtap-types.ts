@@ -12,34 +12,34 @@ export interface BZECert {
     signatureOnRand: string;
 }
 
-export interface KeySplittingPayload {
+export interface MrtapPayload {
     type: string;
     action: string;
 }
 
-export interface KeySplittingMessage<TPayload> {
+export interface MrtapMessage<TPayload> {
     payload: TPayload;
     signature: string;
 }
-export interface SynMessagePayload extends KeySplittingPayload {
+export interface SynMessagePayload extends MrtapPayload {
     nonce: string;
     targetId: string;
     BZECert: BZECert;
 }
 
-export interface DataMessagePayload extends KeySplittingPayload {
+export interface DataMessagePayload extends MrtapPayload {
     targetId: string;
     hPointer: string;
     payload: string;
     BZECert: string;
 }
-export interface SynAckPayload extends KeySplittingPayload {
+export interface SynAckPayload extends MrtapPayload {
     hPointer: string;
     nonce: string;
     targetPublicKey: string;
 }
 
-export interface DataAckPayload extends KeySplittingPayload {
+export interface DataAckPayload extends MrtapPayload {
     hPointer: string;
     payload: string;
     targetPublicKey: string;
@@ -52,15 +52,15 @@ export interface ErrorPayload {
     errorType: string;
 }
 
-export interface DataAckMessage extends KeySplittingMessage<DataAckPayload> { }
+export interface DataAckMessage extends MrtapMessage<DataAckPayload> { }
 
-export interface SynMessage extends KeySplittingMessage<SynMessagePayload> { }
+export interface SynMessage extends MrtapMessage<SynMessagePayload> { }
 
-export interface SynAckMessage extends KeySplittingMessage<SynAckPayload> { }
+export interface SynAckMessage extends MrtapMessage<SynAckPayload> { }
 
-export interface DataMessage extends KeySplittingMessage<DataMessagePayload> { }
+export interface DataMessage extends MrtapMessage<DataMessagePayload> { }
 
-export interface ErrorMessage extends KeySplittingMessage<ErrorPayload> { }
+export interface ErrorMessage extends MrtapMessage<ErrorPayload> { }
 
 export interface SynMessageWrapper {
     synPayload: SynMessage;
@@ -85,27 +85,27 @@ export interface ErrorMessageWrapper {
 // Should be kept in sync with agent error types from
 // https://github.com/bastionzero/bzero-ssm-agent/blob/d5fac61c89b3b2af90faf2a3eec07e55ae123583/agent/keysplitting/contracts/model.go#L117-L133
 // Updated as of agent version 3.0.732.21
-export enum KeysplittingErrorTypes {
-    BZECertInvalidIDToken        = 'BZECertInvalidIDToken',
-    BZECertInvalidNonce          = 'BZECertInvalidNonce',
-    BZECertUnrecognized          = 'BZECertUnrecognized',
-    BZECertInvalidProvider       = 'BZECertProviderError',
-    BZECertExpired               = 'BZECertExpired',
-    HPointerError                = 'HPointerError',
-    SigningError                 = 'SigningError',
-    SignatureVerificationError   = 'SignatureVerificationError',
-    TargetIdInvalid              = 'TargetIdInvalid',
-    HashingError                 = 'HashingError',
-    KeysplittingActionError      = 'KeysplittingActionError',
-    InvalidPayload               = 'InvalidPayload',
-    Unknown                      = 'Unknown',
-    ChannelClosed                = 'ChannelClosed',
-    OutdatedHPointer             = 'OutdatedHPointer',
+export enum MrtapErrorTypes {
+    BZECertInvalidIDToken = 'BZECertInvalidIDToken',
+    BZECertInvalidNonce = 'BZECertInvalidNonce',
+    BZECertUnrecognized = 'BZECertUnrecognized',
+    BZECertInvalidProvider = 'BZECertProviderError',
+    BZECertExpired = 'BZECertExpired',
+    HPointerError = 'HPointerError',
+    SigningError = 'SigningError',
+    SignatureVerificationError = 'SignatureVerificationError',
+    TargetIdInvalid = 'TargetIdInvalid',
+    HashingError = 'HashingError',
+    MrtapActionError = 'MrtapActionError',
+    InvalidPayload = 'InvalidPayload',
+    Unknown = 'Unknown',
+    ChannelClosed = 'ChannelClosed',
+    OutdatedHPointer = 'OutdatedHPointer',
     BZECertExpiredInitialIdToken = 'BZECertExpiredInitialIdToken',
-    HandlerNotReady              = 'HandlerNotReady',
-    FUDFileDoesNotExist          = 'FUDFileDoesNotExist',
+    HandlerNotReady = 'HandlerNotReady',
+    FUDFileDoesNotExist = 'FUDFileDoesNotExist',
     FUDUserDoesNotHavePermission = 'FUDUserDoesNotHavePermission',
-    FUDInvalidDestinationPath    = 'FUDInvalidDestinationPath'
+    FUDInvalidDestinationPath = 'FUDInvalidDestinationPath'
 }
 
 export enum SshTunnelActions {
