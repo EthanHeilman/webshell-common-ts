@@ -4,5 +4,6 @@ export enum PolicyType {
     SessionRecording = 'SessionRecording',
     Kubernetes = 'Kubernetes',
     Proxy = 'Proxy',
-    JustInTime = 'JustInTime'
+    JustInTime = 'JustInTime',
+    AuthProxy = 'AuthProxy'
  };
