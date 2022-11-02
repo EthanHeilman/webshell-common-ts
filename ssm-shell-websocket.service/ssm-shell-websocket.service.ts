@@ -6,7 +6,7 @@ import { ConnectionNodeParameters, ShellEvent, ShellEventType, ShellHubIncomingM
 import { AuthConfigService } from '../auth-config-service/auth-config.service';
 import { ILogger } from '../logging/logging.types';
 import { MrtapService } from '../mrtap.service/mrtap.service';
-import { DataAckMessageWrapper, DataAckPayload, DataMessageWrapper, ErrorMessageWrapper, ShellActions, ShellTerminalSizeActionPayload, SsmTargetInfo, SynAckMessageWrapper, SynAckPayload, SynMessageWrapper, MrtapErrorTypes } from '../mrtap.service/mrtap-types';
+import { DataAckMessageWrapper, DataAckPayload, DataMessageWrapper, ErrorMessageWrapper, ShellActions, ShellTerminalSizeActionPayload, SsmTargetInfo, SynAckMessageWrapper, SynAckPayload, SynMessageWrapper, KeysplittingErrorTypes } from '../mrtap.service/mrtap-types';
 import Utils from '../utility/utils';
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { SignalRLogger } from '../logging/signalr-logger';
@@ -514,7 +514,7 @@ export class SsmShellWebsocketService {
         const errorPayload = errorMessage.errorPayload.payload;
 
         switch (errorPayload.errorType) {
-        case MrtapErrorTypes.HandlerNotReady:
+        case KeysplittingErrorTypes.HandlerNotReady:
             this.logger.debug('Got handler not ready error. Resending input message.');
             await new Promise(resolve => setTimeout(resolve, 1000));
             this.currentInputMessage = undefined;
