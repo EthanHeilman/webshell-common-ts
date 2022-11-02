@@ -32,7 +32,7 @@ export const ShellHubIncomingMessages = {
     // MrTAP
     synAck: 'SynAck',
     dataAck: 'DataAck',
-    mrtapError: 'MrtapError',
+    keysplittingError: 'KeysplittingError',
 };
 
 export const ShellHubOutgoingMessages = {
