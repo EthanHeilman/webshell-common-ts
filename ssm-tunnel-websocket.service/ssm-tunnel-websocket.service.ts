@@ -6,7 +6,7 @@ import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } fro
 
 import { MrtapService } from '../mrtap.service/mrtap.service';
 import { AddSshPubKeyMessage, HUB_RECEIVE_MAX_SIZE, SsmTunnelHubIncomingMessages, SsmTunnelHubOutgoingMessages, StartTunnelMessage, TunnelDataMessage, WebsocketResponse } from './ssm-tunnel-websocket.types';
-import { SynMessageWrapper, DataMessageWrapper, SynAckMessageWrapper, DataAckMessageWrapper, ErrorMessageWrapper, MrtapErrorTypes, SshOpenActionPayload, DataAckPayload, SynAckPayload, SsmTargetInfo, SshTunnelActions } from '../mrtap.service/mrtap-types';
+import { SynMessageWrapper, DataMessageWrapper, SynAckMessageWrapper, DataAckMessageWrapper, ErrorMessageWrapper, KeysplittingErrorTypes, SshOpenActionPayload, DataAckPayload, SynAckPayload, SsmTargetInfo, SshTunnelActions } from '../mrtap.service/mrtap-types';
 import { SignalRLogger } from '../../webshell-common-ts/logging/signalr-logger';
 import { ILogger } from '../logging/logging.types';
 import { AuthConfigService } from '../auth-config-service/auth-config.service';
@@ -287,7 +287,7 @@ export class SsmTunnelWebsocketService {
             this.logger.error(`Error Message: ${errorPayload.message}`);
 
             switch (errorPayload.errorType) {
-            case MrtapErrorTypes.BZECertInvalidIDToken:
+            case KeysplittingErrorTypes.BZECertInvalidIDToken:
                 this.handleError('MrTAP Error: Invalid ID token. Please try logging out and in again.');
                 break;
             default:
