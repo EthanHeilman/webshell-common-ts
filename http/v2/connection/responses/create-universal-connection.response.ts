@@ -4,6 +4,7 @@ import { ShellConnectionAuthDetails } from '../types/shell-connection-auth-detai
 export interface CreateUniversalConnectionResponse {
     connectionId: string;
     targetId: string;
+    targetName: string;
     targetType: TargetType;
     targetUser: string;
     agentPublicKey: string;
