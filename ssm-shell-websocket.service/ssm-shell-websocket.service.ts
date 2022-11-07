@@ -163,7 +163,7 @@ export class SsmShellWebsocketService {
 
         this.websocket.on(ShellHubIncomingMessages.synAck, (synAck) => this.handleSynAck(synAck));
         this.websocket.on(ShellHubIncomingMessages.dataAck, (dataAck) => this.handleDataAck(dataAck));
-        this.websocket.on(ShellHubIncomingMessages.keysplittingError, (ksError) => this.handleMrtapError(ksError));
+        this.websocket.on(ShellHubIncomingMessages.mrtapError, (ksError) => this.handleMrtapError(ksError));
 
         // Finally start the websocket connection
         await this.websocket.start();
