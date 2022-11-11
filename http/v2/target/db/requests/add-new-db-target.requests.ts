@@ -26,6 +26,14 @@ export interface AddNewDbTargetRequest {
      */
     localPort?: OptionalPort;
     /**
+     * True if the remote database has been configured to be accessed with an MPC certificate. False otherwise.
+     */
+    isPasswordless?: boolean;
+    /**
+     * The type of database running on the target (e.g., Postgres, MongoDB)
+     */
+    databaseType?: string;
+    /**
      * Must specify either environmentId or environmentName.
      */
     environmentId?: string;

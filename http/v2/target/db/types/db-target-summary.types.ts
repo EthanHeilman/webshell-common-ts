@@ -7,5 +7,7 @@ export interface DbTargetSummary extends TargetBase {
     localHost: string;
     remotePort: RequiredPort;
     remoteHost: string;
+    isPasswordless: boolean;
+    databaseType: string;
     proxyTargetId: string;
 }
