@@ -11,4 +11,5 @@ export interface CreateUniversalConnectionResponse {
     agentVersion: string;
     connectionAuthDetails: ShellConnectionAuthDetails;
     sshScpOnly?: boolean;
+    isPasswordless?: boolean;
 }
