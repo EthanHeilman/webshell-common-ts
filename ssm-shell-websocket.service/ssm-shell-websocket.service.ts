@@ -5,8 +5,8 @@ import { ConnectionNodeParameters, ShellEvent, ShellEventType, ShellHubIncomingM
 
 import { AuthConfigService } from '../auth-config-service/auth-config.service';
 import { ILogger } from '../logging/logging.types';
-import { KeySplittingService } from '../keysplitting.service/keysplitting.service';
-import { DataAckMessageWrapper, DataAckPayload, DataMessageWrapper, ErrorMessageWrapper, ShellActions, ShellTerminalSizeActionPayload, SsmTargetInfo, SynAckMessageWrapper, SynAckPayload, SynMessageWrapper, KeysplittingErrorTypes } from '../keysplitting.service/keysplitting-types';
+import { MrtapService } from '../mrtap.service/mrtap.service';
+import { DataAckMessageWrapper, DataAckPayload, DataMessageWrapper, ErrorMessageWrapper, ShellActions, ShellTerminalSizeActionPayload, SsmTargetInfo, SynAckMessageWrapper, SynAckPayload, SynMessageWrapper, KeysplittingErrorTypes } from '../mrtap.service/mrtap-types';
 import Utils from '../utility/utils';
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 import { SignalRLogger } from '../logging/signalr-logger';
@@ -17,18 +17,17 @@ interface ShellMessage {
     seqNum: number;
 }
 
-// bzero-agent version >= 3.0.732.16 is keysplitting compatible for interactive shells
-const KeysplittingMinimumAgentVersion = 16;
+// bzero-agent version >= 3.0.732.16 is MrTAP compatible for interactive shells
+const MrtapMinimumAgentVersion = 16;
 
-export function isAgentKeysplittingReady(agentVersion: string): boolean {
-    return Utils.isAgentVersionAtLeast(agentVersion, KeysplittingMinimumAgentVersion);
+export function isAgentMrtapReady(agentVersion: string): boolean {
+    return Utils.isAgentVersionAtLeast(agentVersion, MrtapMinimumAgentVersion);
 }
 
-const KeysplittingHandshakeTimeout = 45; // in seconds
+const MrtapHandshakeTimeout = 45; // in seconds
 
-export class SsmShellWebsocketService
-{
-    private websocket : HubConnection;
+export class SsmShellWebsocketService {
+    private websocket: HubConnection;
 
     // Input subscriptions
     private inputSubscription: Subscription;
@@ -44,8 +43,8 @@ export class SsmShellWebsocketService
     private shellEventSubject: Subject<ShellEvent>;
     public shellEventData: Observable<ShellEvent>;
 
-    private keysplittingHandshakeCompleteSubject = new Subject<boolean>();
-    private keysplittingHandshakeComplete: Observable<boolean> = this.keysplittingHandshakeCompleteSubject.asObservable();
+    private mrtapHandshakeCompleteSubject = new Subject<boolean>();
+    private mrtapHandshakeComplete: Observable<boolean> = this.mrtapHandshakeCompleteSubject.asObservable();
 
     private synShellOpenMessageHPointer: string;
     private synAckShellOpenMessageHPointer: string;
@@ -65,7 +64,7 @@ export class SsmShellWebsocketService
     private targetPublicKey: ed.Point;
 
     constructor(
-        private keySplittingService: KeySplittingService,
+        private mrtapService: MrtapService,
         private targetInfo: SsmTargetInfo,
         private logger: ILogger,
         private authConfigService: AuthConfigService,
@@ -90,22 +89,19 @@ export class SsmShellWebsocketService
         this.targetInfo = targetInfo;
     }
 
-    public async start()
-    {
+    public async start() {
         this.websocket = await this.createConnection();
 
         this.websocket.on(
             ShellHubIncomingMessages.shellReplay,
-            req =>
-            {
+            req => {
                 this.replaySubject.next(req.data);
             }
         );
 
         this.websocket.on(
             ShellHubIncomingMessages.shellOutput,
-            req =>
-            {
+            req => {
                 // ref: https://git.coolaj86.com/coolaj86/atob.js/src/branch/master/node-atob.js
                 this.outputSubject.next(req.data);
             }
@@ -117,7 +113,7 @@ export class SsmShellWebsocketService
             try {
                 await this.handleShellStart();
                 this.shellEventSubject.next({ type: ShellEventType.Start });
-            } catch(err) {
+            } catch (err) {
                 this.logger.error(err);
                 this.shellEventSubject.next({ type: ShellEventType.Disconnect });
             }
@@ -162,29 +158,26 @@ export class SsmShellWebsocketService
             this.logger.debug('Websocket reconnected');
         });
 
-        // Make sure keysplitting service is initialized (keys loaded)
-        await this.keySplittingService.init();
+        // Make sure MrTAP service is initialized (keys loaded)
+        await this.mrtapService.init();
 
         this.websocket.on(ShellHubIncomingMessages.synAck, (synAck) => this.handleSynAck(synAck));
         this.websocket.on(ShellHubIncomingMessages.dataAck, (dataAck) => this.handleDataAck(dataAck));
-        this.websocket.on(ShellHubIncomingMessages.keysplittingError, (ksError) => this.handleKeysplittingError(ksError));
+        this.websocket.on(ShellHubIncomingMessages.mrtapError, (ksError) => this.handleMrtapError(ksError));
 
         // Finally start the websocket connection
         await this.websocket.start();
     }
 
-    public async sendShellConnect(rows: number, cols: number, replayOutput: boolean)
-    {
+    public async sendShellConnect(rows: number, cols: number, replayOutput: boolean) {
         await this.sendWebsocketMessage(ShellHubOutgoingMessages.shellConnect, { TerminalRows: rows, TerminalColumns: cols, ReplayOutput: replayOutput });
     }
 
-    public async sendReplayDone(rows: number, cols: number)
-    {
-        await this.sendWebsocketMessage(ShellHubOutgoingMessages.replayDone, { TerminalRows: rows, TerminalColumns: cols});
+    public async sendReplayDone(rows: number, cols: number) {
+        await this.sendWebsocketMessage(ShellHubOutgoingMessages.replayDone, { TerminalRows: rows, TerminalColumns: cols });
     }
 
-    public async dispose() : Promise<void>
-    {
+    public async dispose(): Promise<void> {
         await this.destroyConnection();
         this.inputSubscription.unsubscribe();
         this.resizeSubscription.unsubscribe();
@@ -192,7 +185,7 @@ export class SsmShellWebsocketService
     }
 
     private async sendWebsocketMessage<TReq>(methodName: string, message: TReq): Promise<void> {
-        if(this.websocket === undefined || this.websocket.state == HubConnectionState.Disconnected)
+        if (this.websocket === undefined || this.websocket.state == HubConnectionState.Disconnected)
             throw new Error('Hub disconnected');
 
         await this.websocket.invoke(methodName, message);
@@ -208,7 +201,7 @@ export class SsmShellWebsocketService
         return new HubConnectionBuilder()
             .withUrl(
                 connectionUrl,
-                { accessTokenFactory: async () => await this.authConfigService.getIdToken()}
+                { accessTokenFactory: async () => await this.authConfigService.getIdToken() }
             )
             .withAutomaticReconnect([100, 1000, 10000, 30000, 60000]) // retry times in ms
             .configureLogging(new SignalRLogger(this.logger, LogLevel.Warning))
@@ -216,13 +209,13 @@ export class SsmShellWebsocketService
     }
 
     private async destroyConnection() {
-        if(this.websocket) {
+        if (this.websocket) {
             await this.websocket.stop();
             this.websocket = undefined;
         }
     }
 
-    private resetKeysplittingState() {
+    private resetMrtapState() {
         this.sequenceNumber = 0;
         this.currentInputMessage = undefined;
         this.lastAckHPointer = undefined;
@@ -232,27 +225,27 @@ export class SsmShellWebsocketService
     }
 
     public async shellReattach(): Promise<void> {
-        if(this.isActiveClient) {
+        if (this.isActiveClient) {
             this.logger.warn('Cannot reattach shell already the active client');
             return;
         }
 
-        this.resetKeysplittingState();
-        await this.performKeysplittingHandshake();
+        this.resetMrtapState();
+        await this.performMrtapHandshake();
     }
 
     private async handleShellStart(): Promise<void> {
-        // reset all keysplitting state in case this is a reconnect attempt
+        // reset all MrTAP state in case this is a reconnect attempt
         // after a previous error occurred
-        this.resetKeysplittingState();
-        await this.performKeysplittingHandshake();
+        this.resetMrtapState();
+        await this.performMrtapHandshake();
     }
 
     private async handleInput(data: string): Promise<void> {
         this.logger.debug(`got new input ${data}`);
 
         // Skip new input messages if we are not the active client
-        if(! this.isActiveClient) {
+        if (!this.isActiveClient) {
             this.logger.debug(`[handleInput] received when not active client...skipping.`);
             return;
         }
@@ -274,7 +267,7 @@ export class SsmShellWebsocketService
         this.logger.debug(`New terminal resize event (rows: ${terminalSize.rows} cols: ${terminalSize.columns})`);
 
         // Skip new resize messages if we are not the active client
-        if(! this.isActiveClient) {
+        if (!this.isActiveClient) {
             this.logger.debug(`[handleResize] received when not active client...skipping.`);
             return;
         }
@@ -297,46 +290,46 @@ export class SsmShellWebsocketService
 
     private async processInputMessageQueue() {
         // currentInputMessage is empty AND we have more to send
-        if (! this.currentInputMessage && this.inputMessageBuffer.length > 0) {
+        if (!this.currentInputMessage && this.inputMessageBuffer.length > 0) {
             this.currentInputMessage = this.inputMessageBuffer[0];
 
             await this.sendShellInputDataMessage(this.currentInputMessage);
         }
     }
 
-    private async performKeysplittingHandshake(): Promise<boolean> {
-        if(this.targetInfo.agentVersion === '') {
-            throw new Error(`Unable to perform keysplitting handshake: agentVersion is not known for target ${this.targetInfo.id}`);
+    private async performMrtapHandshake(): Promise<boolean> {
+        if (this.targetInfo.agentVersion === '') {
+            throw new Error(`Unable to perform MrTAP handshake: agentVersion is not known for target ${this.targetInfo.id}`);
         }
-        if(this.targetInfo.agentId === '' ) {
+        if (this.targetInfo.agentId === '') {
             throw new Error(`Unknown agentId in sendOpenShellSynMessage for target ${this.targetInfo.id}`);
         }
 
-        this.logger.debug(`Starting keysplitting handshake with ${this.targetInfo.id}`);
+        this.logger.debug(`Starting MrTAP handshake with ${this.targetInfo.id}`);
         this.logger.debug(`Agent Version ${this.targetInfo.agentVersion}, Agent ID: ${this.targetInfo.agentId}`);
 
         return new Promise(async (res, rej) => {
-            this.keysplittingHandshakeComplete
-                .pipe(timeout(KeysplittingHandshakeTimeout * 1000))
+            this.mrtapHandshakeComplete
+                .pipe(timeout(MrtapHandshakeTimeout * 1000))
                 .subscribe(
                     completedSuccessfully => res(completedSuccessfully),
-                    _ => rej(`Keyspliting handshake timed out after ${KeysplittingHandshakeTimeout} seconds`)
+                    _ => rej(`Keyspliting handshake timed out after ${MrtapHandshakeTimeout} seconds`)
                 );
 
-            // start the keysplitting handshake
+            // start the MrTAP handshake
             await this.sendShellOpenSynMessage();
         });
     }
 
     private async sendShellOpenSynMessage() {
         this.currentIdToken = await this.authConfigService.getIdToken();
-        const synMessage = await this.keySplittingService.buildSynMessage(
+        const synMessage = await this.mrtapService.buildSynMessage(
             this.targetInfo.agentId,
             ShellActions.Open,
             this.currentIdToken
         );
 
-        this.synShellOpenMessageHPointer = this.keySplittingService.getHPointer(synMessage.synPayload.payload);
+        this.synShellOpenMessageHPointer = this.mrtapService.getHPointer(synMessage.synPayload.payload);
         await this.sendSynMessage(synMessage);
     }
 
@@ -344,14 +337,14 @@ export class SsmShellWebsocketService
         // Check whether current BZCert's idtoken has been refreshed
         // If yes we need to perform a new handshake before sending data
         const IdToken = await this.authConfigService.getIdToken();
-        if (this.currentIdToken !== IdToken){
-            this.logger.debug(`Current idtoken has expired, requesting new and performing new ks handshake`);
-            await this.performKeysplittingHandshake();
+        if (this.currentIdToken !== IdToken) {
+            this.logger.debug(`Current idtoken has expired, requesting new and performing new MrTAP handshake`);
+            await this.performMrtapHandshake();
             return;
         }
 
         const shellOpenDataPayload = {};
-        const dataMessage = await this.keySplittingService.buildDataMessage(
+        const dataMessage = await this.mrtapService.buildDataMessage(
             this.targetInfo.agentId,
             ShellActions.Open,
             this.currentIdToken,
@@ -359,7 +352,7 @@ export class SsmShellWebsocketService
             this.synAckShellOpenMessageHPointer
         );
 
-        this.dataShellOpenMessageHPointer = this.keySplittingService.getHPointer(dataMessage.dataPayload.payload);
+        this.dataShellOpenMessageHPointer = this.mrtapService.getHPointer(dataMessage.dataPayload.payload);
         await this.sendDataMessage(dataMessage);
     }
 
@@ -367,18 +360,18 @@ export class SsmShellWebsocketService
         // Check whether current BZCert's idtoken has been refreshed
         // If yes we need to perform a new handshake before sending data
         const IdToken = await this.authConfigService.getIdToken();
-        if (this.currentIdToken !== IdToken){
-            this.logger.debug(`Current id token has expired, requesting new and performing new ks handshake`);
-            await this.performKeysplittingHandshake();
+        if (this.currentIdToken !== IdToken) {
+            this.logger.debug(`Current id token has expired, requesting new and performing new MrTAP handshake`);
+            await this.performMrtapHandshake();
         }
 
         this.logger.debug(`Sending new input data message. ${JSON.stringify(input)}`);
 
-        if(! this.lastAckHPointer) {
+        if (!this.lastAckHPointer) {
             throw new Error(`prevHPointer is not known for input ${JSON.stringify(input)}`);
         }
 
-        const dataMessage = await this.keySplittingService.buildDataMessage(
+        const dataMessage = await this.mrtapService.buildDataMessage(
             this.targetInfo.agentId,
             input.inputType,
             this.currentIdToken,
@@ -386,7 +379,7 @@ export class SsmShellWebsocketService
             this.lastAckHPointer
         );
 
-        const hPointer = this.keySplittingService.getHPointer(dataMessage.dataPayload.payload);
+        const hPointer = this.mrtapService.getHPointer(dataMessage.dataPayload.payload);
         this.outgoingShellInputMessages[hPointer] = input;
 
         await this.sendDataMessage(dataMessage);
@@ -418,7 +411,7 @@ export class SsmShellWebsocketService
             if (synAckMessage.synAckPayload.payload.hPointer != this.synShellOpenMessageHPointer) {
                 this.logger.debug('[SynAck] received message from another client.');
                 this.isActiveClient = false;
-                this.shellEventSubject.next({ type: ShellEventType.Unattached});
+                this.shellEventSubject.next({ type: ShellEventType.Unattached });
                 return;
             }
 
@@ -428,18 +421,18 @@ export class SsmShellWebsocketService
             this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
 
             // Validate our signature
-            if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
+            if (await this.mrtapService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
                 const errorString = '[SynAck] Error Validating Signature!';
                 this.logger.error(errorString);
                 throw new Error(errorString);
             }
 
-            this.synAckShellOpenMessageHPointer = this.keySplittingService.getHPointer(synAckMessage.synAckPayload.payload);
+            this.synAckShellOpenMessageHPointer = this.mrtapService.getHPointer(synAckMessage.synAckPayload.payload);
             this.lastAckHPointer = this.synAckShellOpenMessageHPointer;
             this.isActiveClient = true;
 
             await this.sendShellOpenDataMessage();
-        } catch(e) {
+        } catch (e) {
             this.logger.error(`Error in handleSynAck: ${e}`);
         }
     }
@@ -449,13 +442,13 @@ export class SsmShellWebsocketService
             this.logger.debug(`Received DataAck message: ${JSON.stringify(dataAckMessage)}`);
 
             // Skip processing all data ack messages if we are not the active client
-            if(! this.isActiveClient) {
+            if (!this.isActiveClient) {
                 this.logger.debug(`[DataAck] received when not active client...skipping.`);
                 return;
             }
 
             const action = dataAckMessage.dataAckPayload.payload.action;
-            switch(action) {
+            switch (action) {
             case ShellActions.Open:
                 await this.handleShellOpenDataAck(dataAckMessage);
                 break;
@@ -466,38 +459,38 @@ export class SsmShellWebsocketService
             default:
                 throw new Error(`Unhandled data ack action ${action}`);
             }
-        } catch(e) {
+        } catch (e) {
             this.logger.error(`Error in handleDataAck: ${e}, ${e.stack}`);
         }
     }
 
     private async handleShellOpenDataAck(dataAckMessage: DataAckMessageWrapper) {
         // Validate our HPointer
-        if ( dataAckMessage.dataAckPayload.payload.hPointer !== this.dataShellOpenMessageHPointer) {
+        if (dataAckMessage.dataAckPayload.payload.hPointer !== this.dataShellOpenMessageHPointer) {
             const errorString = '[DataAck] Error Validating HPointer!';
             this.logger.error(errorString);
             throw new Error(errorString);
         }
 
         // Validate our signature
-        if (! await this.keySplittingService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey)) {
+        if (! await this.mrtapService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey)) {
             const errorString = '[DataAck] Error Validating Signature!';
             this.logger.error(errorString);
             throw new Error(errorString);
         }
 
-        this.dataAckShellOpenMessageHPointer = this.keySplittingService.getHPointer(dataAckMessage.dataAckPayload.payload);
+        this.dataAckShellOpenMessageHPointer = this.mrtapService.getHPointer(dataAckMessage.dataAckPayload.payload);
         this.lastAckHPointer = this.dataAckShellOpenMessageHPointer;
 
-        // Mark the keysplitting handshake as completed successfully
-        this.keysplittingHandshakeCompleteSubject.next(true);
+        // Mark the MrTAP handshake as completed successfully
+        this.mrtapHandshakeCompleteSubject.next(true);
     }
 
     private async handleShellInputOrResizeDataAck(dataAckMessage: DataAckMessageWrapper) {
         const hPointer = dataAckMessage.dataAckPayload.payload.hPointer;
         const inputMessage = this.outgoingShellInputMessages[hPointer];
 
-        if(! inputMessage) {
+        if (!inputMessage) {
             this.logger.error(`Unrecognized shell input data ack with hpointer ${hPointer}`);
             return;
         }
@@ -507,7 +500,7 @@ export class SsmShellWebsocketService
             return;
         }
 
-        this.lastAckHPointer = this.keySplittingService.getHPointer(dataAckMessage.dataAckPayload.payload);
+        this.lastAckHPointer = this.mrtapService.getHPointer(dataAckMessage.dataAckPayload.payload);
 
         // Remove from outgoing message map and input message buffer
         this.currentInputMessage = undefined;
@@ -517,10 +510,10 @@ export class SsmShellWebsocketService
         await this.processInputMessageQueue();
     }
 
-    private async handleKeysplittingError(errorMessage: ErrorMessageWrapper) {
+    private async handleMrtapError(errorMessage: ErrorMessageWrapper) {
         const errorPayload = errorMessage.errorPayload.payload;
 
-        switch(errorPayload.errorType) {
+        switch (errorPayload.errorType) {
         case KeysplittingErrorTypes.HandlerNotReady:
             this.logger.debug('Got handler not ready error. Resending input message.');
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -528,10 +521,10 @@ export class SsmShellWebsocketService
             await this.processInputMessageQueue();
             break;
         default:
-            this.logger.error(`Got agent keysplitting error on message ${errorPayload.hPointer}`);
+            this.logger.error(`Got agent MrTAP error on message ${errorPayload.hPointer}`);
             this.logger.error(`Type: ${errorPayload.errorType}`);
             this.logger.error(`Error Message: ${errorPayload.message}`);
-            this.shellEventSubject.next({ type: ShellEventType.Disconnect});
+            this.shellEventSubject.next({ type: ShellEventType.Disconnect });
         }
     }
 }

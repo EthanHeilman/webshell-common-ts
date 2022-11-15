@@ -1,4 +1,4 @@
-export interface KeySplittingConfigSchema {
+export interface MrtapConfigSchema {
     initialIdToken: string,
     cerRand: string,
     cerRandSig: string,
@@ -8,7 +8,7 @@ export interface KeySplittingConfigSchema {
     orgProvider: string
 }
 
-export function getDefaultKeysplittingConfig(): KeySplittingConfigSchema {
+export function getDefaultMrtapConfig(): MrtapConfigSchema {
     return {
         initialIdToken: undefined,
         cerRand: undefined,
@@ -21,7 +21,7 @@ export function getDefaultKeysplittingConfig(): KeySplittingConfigSchema {
 }
 
 export interface ConfigInterface {
-    updateKeySplitting(data: KeySplittingConfigSchema): void
-    loadKeySplitting(): KeySplittingConfigSchema
-    removeKeySplitting(): void
+    updateMrtap(data: MrtapConfigSchema): void
+    loadMrtap(): MrtapConfigSchema
+    removeMrtap(): void
 }

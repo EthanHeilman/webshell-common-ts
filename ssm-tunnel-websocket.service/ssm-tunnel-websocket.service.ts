@@ -4,27 +4,26 @@ import { Observable, Subject } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 import { HubConnection, HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
 
-import { KeySplittingService } from '../../webshell-common-ts/keysplitting.service/keysplitting.service';
+import { MrtapService } from '../mrtap.service/mrtap.service';
 import { AddSshPubKeyMessage, HUB_RECEIVE_MAX_SIZE, SsmTunnelHubIncomingMessages, SsmTunnelHubOutgoingMessages, StartTunnelMessage, TunnelDataMessage, WebsocketResponse } from './ssm-tunnel-websocket.types';
-import { SynMessageWrapper, DataMessageWrapper, SynAckMessageWrapper, DataAckMessageWrapper, ErrorMessageWrapper, KeysplittingErrorTypes, SshOpenActionPayload, DataAckPayload, SynAckPayload, SsmTargetInfo, SshTunnelActions } from '../../webshell-common-ts/keysplitting.service/keysplitting-types';
+import { SynMessageWrapper, DataMessageWrapper, SynAckMessageWrapper, DataAckMessageWrapper, ErrorMessageWrapper, KeysplittingErrorTypes, SshOpenActionPayload, DataAckPayload, SynAckPayload, SsmTargetInfo, SshTunnelActions } from '../mrtap.service/mrtap-types';
 import { SignalRLogger } from '../../webshell-common-ts/logging/signalr-logger';
 import { ILogger } from '../logging/logging.types';
 import { AuthConfigService } from '../auth-config-service/auth-config.service';
 
-const KeysplittingHandshakeTimeout = 15; // in seconds
+const MrtapHandshakeTimeout = 15; // in seconds
 
-export class SsmTunnelWebsocketService
-{
+export class SsmTunnelWebsocketService {
     private sequenceNumber = 0;
     private targetInfo: SsmTargetInfo;
-    private websocket : HubConnection;
+    private websocket: HubConnection;
     private errorSubject: Subject<string> = new Subject<string>();
     private username: string;
     private sshPublicKey: SshPK.Key;
     private targetPublicKey: ed.Point;
 
-    private keysplittingHandshakeCompleteSubject = new Subject<boolean>();
-    private keysplittingHandshakeComplete: Observable<boolean> = this.keysplittingHandshakeCompleteSubject.asObservable();
+    private mrtapHandshakeCompleteSubject = new Subject<boolean>();
+    private mrtapHandshakeComplete: Observable<boolean> = this.mrtapHandshakeCompleteSubject.asObservable();
 
     private synSshOpenMessageHPointer: string;
     private dataSshOpenMessageHPointer: string;
@@ -35,11 +34,10 @@ export class SsmTunnelWebsocketService
 
     constructor(
         private logger: ILogger,
-        private keySplittingService: KeySplittingService,
+        private mrtapService: MrtapService,
         private authConfigService: AuthConfigService,
         targetInfo: SsmTargetInfo
-    )
-    {
+    ) {
         this.targetInfo = targetInfo;
     }
 
@@ -47,8 +45,8 @@ export class SsmTunnelWebsocketService
         username: string,
         port: number,
         sshPublicKey: SshPK.Key,
-        keysplittingEnabled: boolean = true
-    ) : Promise<boolean> {
+        mrtapEnabled: boolean = true
+    ): Promise<boolean> {
         try {
             this.username = username;
             this.sshPublicKey = sshPublicKey;
@@ -61,21 +59,21 @@ export class SsmTunnelWebsocketService
                 targetUser: username
             });
 
-            if((this.targetInfo.agentVersion != '' && this.targetInfo.agentVersion != 'Unknown')  && keysplittingEnabled) {
-                // If keysplitting is enabled start the keysplitting handshake
+            if ((this.targetInfo.agentVersion != '' && this.targetInfo.agentVersion != 'Unknown') && mrtapEnabled) {
+                // If MrTAP is enabled start the MrTAP handshake
                 // and rely on this for setting up the ephemeral ssh key on the
                 // target
-                return await this.performKeysplittingHandshake();
+                return await this.performMrtapHandshake();
             } else {
-                if (keysplittingEnabled && (this.targetInfo.agentVersion == '' || this.targetInfo.agentVersion == 'Unknown')) {
-                    this.logger.warn('Keysplitting enabled, but target did not return an agent version! Defaulting to normal ssh tunneling.');
+                if (mrtapEnabled && (this.targetInfo.agentVersion == '' || this.targetInfo.agentVersion == 'Unknown')) {
+                    this.logger.warn('MrTAP enabled, but target did not return an agent version! Defaulting to normal ssh tunneling.');
                 }
-                // If keysplitting not enabled then send the
+                // If MrTAP not enabled then send the
                 await this.sendPubKeyViaBastion(sshPublicKey);
             }
 
             return true;
-        } catch(err) {
+        } catch (err) {
             this.handleError(`Failed to setup tunnel: ${err}`);
             return false;
         }
@@ -94,7 +92,7 @@ export class SsmTunnelWebsocketService
             // number + json encoding)
             const maxChunkSize = HUB_RECEIVE_MAX_SIZE - 1024;
 
-            while(offset < len) {
+            while (offset < len) {
 
                 const chunkSize = Math.min(len - offset, maxChunkSize);
                 const dataMessage: TunnelDataMessage = {
@@ -108,13 +106,13 @@ export class SsmTunnelWebsocketService
                     dataMessage
                 );
             }
-        } catch(err) {
+        } catch (err) {
             this.handleError(err);
         }
     }
 
     public async closeConnection(): Promise<void> {
-        if(this.websocket) {
+        if (this.websocket) {
             await this.websocket.stop();
             this.websocket = undefined;
         }
@@ -123,7 +121,7 @@ export class SsmTunnelWebsocketService
     // This will send the pubkey through the bastion's AddSshPubKey websocket
     // method which uses RunCommand to add the ssh pubkey to the target's
     // authorized_keys file. This code path should ultimately be removed once
-    // keysplitting is fully enforced
+    // MrTAP is fully enforced
     private async sendPubKeyViaBastion(pubKey: SshPK.Key) {
         // key type and pubkey are space delimited in the resulting string
         // https://github.com/joyent/node-sshpk/blob/4342c21c2e0d3860f5268fd6fd8af6bdeddcc6fc/lib/formats/ssh.js#L99
@@ -135,43 +133,43 @@ export class SsmTunnelWebsocketService
         });
     }
 
-    private async performKeysplittingHandshake(): Promise<boolean> {
-        if(this.targetInfo.agentVersion === '') {
-            throw new Error(`Unable to perform keysplitting handshake: agentVersion is not known for target ${this.targetInfo.id}`);
+    private async performMrtapHandshake(): Promise<boolean> {
+        if (this.targetInfo.agentVersion === '') {
+            throw new Error(`Unable to perform MrTAP handshake: agentVersion is not known for target ${this.targetInfo.id}`);
         }
 
-        this.logger.debug(`Starting keysplitting handshake with ${this.targetInfo.id}`);
+        this.logger.debug(`Starting MrTAP handshake with ${this.targetInfo.id}`);
         this.logger.debug(`Agent Version ${this.targetInfo.agentVersion}, Agent ID: ${this.targetInfo.agentId}`);
 
         await this.sendOpenShellSynMessage();
 
         return new Promise((res, rej) => {
-            this.keysplittingHandshakeComplete
-                .pipe(timeout(KeysplittingHandshakeTimeout * 1000))
+            this.mrtapHandshakeComplete
+                .pipe(timeout(MrtapHandshakeTimeout * 1000))
                 .subscribe(
                     completedSuccessfully => res(completedSuccessfully),
-                    _ => rej(`Keyspliting handshake timed out after ${KeysplittingHandshakeTimeout} seconds`)
+                    _ => rej(`Keyspliting handshake timed out after ${MrtapHandshakeTimeout} seconds`)
                 );
         });
     }
 
     private async sendOpenShellSynMessage() {
-        if(this.targetInfo.agentId === '') {
+        if (this.targetInfo.agentId === '') {
             throw new Error(`Unknown agentId in sendOpenShellSynMessage for target ${this.targetInfo.id}`);
         }
 
-        const synMessage = await this.keySplittingService.buildSynMessage(
+        const synMessage = await this.mrtapService.buildSynMessage(
             this.targetInfo.agentId,
             SshTunnelActions.Open,
             await this.authConfigService.getIdToken()
         );
-        this.synSshOpenMessageHPointer = this.keySplittingService.getHPointer(synMessage.synPayload.payload);
+        this.synSshOpenMessageHPointer = this.mrtapService.getHPointer(synMessage.synPayload.payload);
 
         await this.sendSynMessage(synMessage);
     }
 
     private async sendOpenShellDataMessage() {
-        if(this.targetInfo.agentId === '') {
+        if (this.targetInfo.agentId === '') {
             throw new Error(`Unknown agentId in sendOpenShellDataMessage for target ${this.targetInfo.id}`);
         }
 
@@ -185,7 +183,7 @@ export class SsmTunnelWebsocketService
             sshPubKey: sshPubKey
         };
 
-        const dataMessage = await this.keySplittingService.buildDataMessage(
+        const dataMessage = await this.mrtapService.buildDataMessage(
             this.targetInfo.agentId,
             SshTunnelActions.Open,
             await this.authConfigService.getIdToken(),
@@ -193,7 +191,7 @@ export class SsmTunnelWebsocketService
             this.synAckSshOpenMessageHPointer
         );
 
-        this.dataSshOpenMessageHPointer = this.keySplittingService.getHPointer(dataMessage.dataPayload.payload);
+        this.dataSshOpenMessageHPointer = this.mrtapService.getHPointer(dataMessage.dataPayload.payload);
 
         await this.sendDataMessage(dataMessage);
     }
@@ -215,7 +213,7 @@ export class SsmTunnelWebsocketService
 
                 // Write to standard out for ProxyCommand to consume
                 process.stdout.write(buf);
-            } catch(e) {
+            } catch (e) {
                 this.logger.error(`Error in ReceiveData: ${e}`);
             }
         });
@@ -237,14 +235,14 @@ export class SsmTunnelWebsocketService
                 this.targetPublicKey = ed.Point.fromHex(Buffer.from(pubkey, 'base64').toString('hex'));
 
                 // Validate our signature
-                if (await this.keySplittingService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
+                if (await this.mrtapService.validateSignature<SynAckPayload>(synAckMessage.synAckPayload, this.targetPublicKey) != true) {
                     const errorString = '[SynAck] Error Validating Signature!';
                     this.logger.error(errorString);
                     throw new Error(errorString);
                 }
 
                 // Set synAck hPointer
-                this.synAckSshOpenMessageHPointer = this.keySplittingService.getHPointer(synAckMessage.synAckPayload.payload);
+                this.synAckSshOpenMessageHPointer = this.mrtapService.getHPointer(synAckMessage.synAckPayload.payload);
 
                 this.sendOpenShellDataMessage();
             } catch (e) {
@@ -263,16 +261,16 @@ export class SsmTunnelWebsocketService
                 }
 
                 // Validate our signature
-                if (await this.keySplittingService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey) != true) {
+                if (await this.mrtapService.validateSignature<DataAckPayload>(dataAckMessage.dataAckPayload, this.targetPublicKey) != true) {
                     const errorString = '[DataAck] Error Validating Signature!';
                     this.logger.error(errorString);
                     throw new Error(errorString);
                 }
 
-                this.dataAckSshOpenMessageHPointer = this.keySplittingService.getHPointer(dataAckMessage.dataAckPayload.payload);
+                this.dataAckSshOpenMessageHPointer = this.mrtapService.getHPointer(dataAckMessage.dataAckPayload.payload);
 
-                // Mark the keysplitting handshake as completed successfully
-                this.keysplittingHandshakeCompleteSubject.next(true);
+                // Mark the MrTAP handshake as completed successfully
+                this.mrtapHandshakeCompleteSubject.next(true);
 
             } catch (e) {
                 this.handleError(`Error in ReceiveDataAck: ${e}`);
@@ -284,16 +282,16 @@ export class SsmTunnelWebsocketService
 
             // TODO: check signature on error payload
 
-            this.logger.error(`Got agent keysplitting error on message ${errorPayload.hPointer}`);
+            this.logger.error(`Got agent MrTAP error on message ${errorPayload.hPointer}`);
             this.logger.error(`Type: ${errorPayload.errorType}`);
             this.logger.error(`Error Message: ${errorPayload.message}`);
 
-            switch(errorPayload.errorType) {
+            switch (errorPayload.errorType) {
             case KeysplittingErrorTypes.BZECertInvalidIDToken:
-                this.handleError('Keysplitting Error: Invalid ID token. Please try logging out and in again.');
+                this.handleError('MrTAP Error: Invalid ID token. Please try logging out and in again.');
                 break;
             default:
-                this.handleError(`Unhandled Keysplitting Error: ${errorPayload.errorType}::${errorPayload.message}`);
+                this.handleError(`Unhandled MrTAP Error: ${errorPayload.errorType}::${errorPayload.message}`);
             }
         });
     }
@@ -309,15 +307,14 @@ export class SsmTunnelWebsocketService
                 connectionUrl,
                 {
                     accessTokenFactory: async () => await this.authConfigService.getIdToken(),
-                    headers: {'cookie': `${sessionIdCookie}; ${sessionTokenCookie}`}
+                    headers: { 'cookie': `${sessionIdCookie}; ${sessionTokenCookie}` }
                 }
             )
             .configureLogging(new SignalRLogger(this.logger, LogLevel.Warning));
         return connectionBuilder.build();
     }
 
-    private async startWebsocket()
-    {
+    private async startWebsocket() {
         this.websocket = await this.createConnection();
         await this.websocket.start();
     }
@@ -337,13 +334,13 @@ export class SsmTunnelWebsocketService
     }
 
     private async sendWebsocketMessage<T>(methodName: string, message: T) {
-        if(this.websocket === undefined || this.websocket.state == HubConnectionState.Disconnected)
+        if (this.websocket === undefined || this.websocket.state == HubConnectionState.Disconnected)
             throw new Error('Hub disconnected');
 
         const response = await this.websocket.invoke<WebsocketResponse>(methodName, message);
 
         // Handle Hub Error
-        if(response.error) {
+        if (response.error) {
             throw new Error(response.errorMessage);
         }
     }

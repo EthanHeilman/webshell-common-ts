@@ -3,14 +3,14 @@ import * as ed from 'noble-ed25519';
 import * as CryptoJS from 'crypto-js';
 
 import { ILogger } from '../logging/logging.types';
-import { ConfigInterface, getDefaultKeysplittingConfig, KeySplittingConfigSchema } from './keysplitting.service.types';
-import { BZECert, DataMessageWrapper, SynMessageWrapper, KeySplittingMessage, SynMessagePayload, DataMessagePayload } from './keysplitting-types';
+import { ConfigInterface, getDefaultMrtapConfig, MrtapConfigSchema } from './mrtap.service.types';
+import { BZECert, DataMessageWrapper, SynMessageWrapper, MrtapMessage, SynMessagePayload, DataMessagePayload } from './mrtap-types';
 import { OrgBZCertValidationInfo } from '../http/v2/organization/types/organization-bzcert-validation-info.types';
 import Utils from '../utility/utils';
 
-export class KeySplittingService {
+export class MrtapService {
     private config: ConfigInterface;
-    private data: KeySplittingConfigSchema;
+    private data: MrtapConfigSchema;
     private logger: ILogger;
 
     private publicKey: Uint8Array;
@@ -19,7 +19,7 @@ export class KeySplittingService {
     constructor(config: ConfigInterface, logger: ILogger) {
         this.config = config;
         this.logger = logger;
-        this.data = this.config.loadKeySplitting();
+        this.data = this.config.loadMrtap();
     }
 
     public async init(): Promise<void> {
@@ -28,13 +28,13 @@ export class KeySplittingService {
         await this.loadKeys();
     }
 
-    public keysplittingVersion(): string {
+    public mrtapVersion(): string {
         return '1.1';
     }
 
     public setInitialIdToken(latestIdToken: string): void {
         this.data.initialIdToken = latestIdToken;
-        this.config.updateKeySplitting(this.data);
+        this.config.updateMrtap(this.data);
         this.logger.debug('Updated latestIdToken');
     }
 
@@ -42,8 +42,8 @@ export class KeySplittingService {
         this.data.orgIssuerId = validationInfo.orgIdpIssuerId;
         this.data.orgProvider = validationInfo.orgIdpProvider;
 
-        // Update keysplitting config file
-        this.config.updateKeySplitting(this.data);
+        // Update MrTAP config file
+        this.config.updateMrtap(this.data);
     }
 
     public async getBZECert(currentIdToken: string): Promise<BZECert> {
@@ -80,25 +80,25 @@ export class KeySplittingService {
         return nonce;
     }
 
-    public async generateKeysplittingLoginData(): Promise<void> {
+    public async generateMrtapLoginData(): Promise<void> {
         // reset config data
-        this.data = getDefaultKeysplittingConfig();
+        this.data = getDefaultMrtapConfig();
 
         // Reset our keys and recreate them
         await this.generateKeys();
         await this.generateCerRand();
 
-        // Update keysplitting config file
-        this.config.updateKeySplitting(this.data);
+        // Update MrTAP config file
+        this.config.updateMrtap(this.data);
 
-        this.logger.debug('Reset keysplitting service');
+        this.logger.debug('Reset MrTAP service');
     }
 
     public getHPointer(message: any): string {
         return this.hashHelper(Utils.JSONstringifyOrder(message)).toString('base64');
     }
 
-    public async validateSignature<T>(message: KeySplittingMessage<T>, targetPublicKey: ed.Point): Promise<boolean> {
+    public async validateSignature<T>(message: MrtapMessage<T>, targetPublicKey: ed.Point): Promise<boolean> {
         if (targetPublicKey == undefined) {
             throw new Error('Error validating message! Target Public Key is undefined!');
         }
@@ -112,14 +112,14 @@ export class KeySplittingService {
         return false;
     }
 
-    public removeKeysplittingData(): void {
-        this.config.removeKeySplitting();
+    public removeMrtapData(): void {
+        this.config.removeMrtap();
     }
 
     private encodeDataPayload(payload: any) {
-        if(typeof payload === 'string') {
+        if (typeof payload === 'string') {
             return payload;
-        } else if(typeof payload === 'object') {
+        } else if (typeof payload === 'object') {
             return Utils.JSONstringifyOrder(payload).toString('utf8');
         } else {
             throw new Error(`Unhandled payload type ${typeof payload}`);
@@ -146,7 +146,7 @@ export class KeySplittingService {
         // Then build and return our wrapped object
         dataMessage.signature = signature;
         return {
-            dataPayload : dataMessage
+            dataPayload: dataMessage
         };
     }
 
@@ -169,11 +169,11 @@ export class KeySplittingService {
         // Then build and return our wrapped object
         synMessage.signature = signature;
         return {
-            synPayload : synMessage
+            synPayload: synMessage
         };
     }
 
-    private async signMessagePayload<T>(messagePayload: KeySplittingMessage<T>): Promise<string> {
+    private async signMessagePayload<T>(messagePayload: MrtapMessage<T>): Promise<string> {
         return this.signHelper(Utils.JSONstringifyOrder(messagePayload.payload));
     }
 
@@ -201,7 +201,7 @@ export class KeySplittingService {
             if (Buffer.from(this.publicKey).toString('base64') != this.data.publicKey) {
                 throw new Error('Error loading keys, please check your key configuration');
             }
-            this.logger.debug('Loaded keysplitting keys');
+            this.logger.debug('Loaded MrTAP keys');
         }
     }
 
@@ -213,7 +213,7 @@ export class KeySplittingService {
         // Update our config
         this.data.privateKey = Buffer.from(this.privateKey).toString('base64');
         this.data.publicKey = Buffer.from(this.publicKey).toString('base64');
-        this.logger.debug('Generated keysplitting keys');
+        this.logger.debug('Generated MrTAP keys');
     }
 
     // Helper function for generating random bytes returned as a Buffer

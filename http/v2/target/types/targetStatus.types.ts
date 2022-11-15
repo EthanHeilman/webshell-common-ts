@@ -3,5 +3,6 @@ export enum TargetStatus {
     Offline = 'Offline',
     Online = 'Online',
     Terminated = 'Terminated',
-    Error = 'Error'
+    Error = 'Error',
+    Restarting = 'Restarting'
 }

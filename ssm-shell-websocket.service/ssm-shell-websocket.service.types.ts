@@ -1,20 +1,20 @@
 import { Observable } from 'rxjs';
-import { SsmTargetInfo } from '../keysplitting.service/keysplitting-types';
+import { SsmTargetInfo } from '../mrtap.service/mrtap-types';
 import { IDisposableAsync } from '../utility/disposable';
 
-export interface ISsmShellWebsocketService extends IDisposableAsync{
-    start() : Promise<void>;
+export interface ISsmShellWebsocketService extends IDisposableAsync {
+    start(): Promise<void>;
 
     updateTargetInfo(targetInfo: SsmTargetInfo): void;
 
     // Terminal dimensions provided in the shell connect are only used for the
-    // virtual terminal emulator for command extraction. Keysplitting shells
+    // virtual terminal emulator for command extraction. MrTAP shells
     // must send a separate resize input event
     sendShellConnect(rows: number, cols: number, replayOutput: boolean): void;
 
     sendReplayDone(rows: number, cols: number): void;
 
-    shellReattach() : Promise<void>;
+    shellReattach(): Promise<void>;
 
     outputData: Observable<string>;
     replayData: Observable<string>;
@@ -29,10 +29,10 @@ export const ShellHubIncomingMessages = {
     shellDelete: 'ShellDelete',
     connectionReady: 'ConnectionReady',
 
-    // keysplitting
+    // MrTAP
     synAck: 'SynAck',
     dataAck: 'DataAck',
-    keysplittingError: 'KeysplittingError',
+    mrtapError: 'MrtapError',
 };
 
 export const ShellHubOutgoingMessages = {
@@ -41,7 +41,7 @@ export const ShellHubOutgoingMessages = {
     shellInput: 'ShellInput',
     shellGeometry: 'ShellGeometry',
 
-    // keysplitting
+    // MrTAP
     synMessage: 'SynMessage',
     dataMessage: 'DataMessage',
 };
@@ -59,14 +59,12 @@ export interface ShellEvent {
     type: ShellEventType;
 }
 
-export interface TerminalSize
-{
+export interface TerminalSize {
     rows: number;
     columns: number;
 }
 
-export interface ConnectionNodeParameters
-{
+export interface ConnectionNodeParameters {
     authToken: string;
     connectionServiceUrl: string;
 }

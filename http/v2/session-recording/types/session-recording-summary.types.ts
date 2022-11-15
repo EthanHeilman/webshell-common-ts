@@ -8,6 +8,7 @@ export interface SessionRecordingSummary {
      connectionState: ConnectionState;
      targetId: string;
      targetType: TargetType;
+     targetName: string;
      targetUser: string;
      inputRecorded: boolean;
      subjectId: string;
