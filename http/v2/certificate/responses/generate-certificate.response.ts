@@ -1,3 +1,6 @@
 export interface GenerateCertificateResponse {
-    // TODO: fill it in
+    caCert: string
+    serverCert?: string
+    serverKey?: string
+    agentKeyShard?: string // string represntation of a bigint
 }

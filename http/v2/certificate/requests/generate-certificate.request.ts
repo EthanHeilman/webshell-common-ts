@@ -3,5 +3,4 @@ export interface GenerateCertificateRequest {
     targetIds: string[]
     envName?: string
     envId?: string
-    shard: string
 }
