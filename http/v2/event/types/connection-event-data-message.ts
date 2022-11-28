@@ -6,7 +6,7 @@ export interface ConnectionEventDataMessage {
      connectionId: string;
      subjectId: string;
      subjectType: SubjectType;
-     userName: string;
+     subjectName: string;
      organizationId: string;
      sessionId: string;
      sessionName: string;

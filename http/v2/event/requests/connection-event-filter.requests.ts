@@ -6,7 +6,7 @@ import { ConnectionEventType } from '../types/connection-event.types';
 export interface ConnectionEventFilterRequest {
     subjectIds?: string[];
     subjectTypes?: SubjectType[];
-    userNames?: string[];
+    subjectNames?: string[];
     isAdmin?: boolean;
     ipAddresses?: string[];
     startTimestamp?: Date;
