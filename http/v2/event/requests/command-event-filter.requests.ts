@@ -5,7 +5,7 @@ import { TargetType } from '../../target/types/target.types';
 export interface CommandEventFilterRequest {
     subjectIds?: string[];
     subjectTypes?: SubjectType;
-    userNames?: string[];
+    subjectNames?: string[];
     isAdmin?: boolean;
     ipAddresses?: string[];
     startTimestamp?: Date;

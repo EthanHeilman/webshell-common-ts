@@ -5,7 +5,7 @@ export interface UserEventDataMessage {
     organizationId: string;
     subjectId: string;
     subjectType: SubjectType;
-    userName: string;
+    subjectName: string;
     isAdmin: boolean;
     serviceAction: string;
     resource: string;
