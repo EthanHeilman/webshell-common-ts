@@ -2,10 +2,15 @@ export interface GenerateCertificateResponse {
     caCert: string
     serverCert?: string
     serverKey?: string
-    agentKeyShard?: KeyShard
+    agentKeyShard?: MappedKeyShard
 }
 
-export interface KeyShard {
+export interface MappedKeyShard {
+    key: AgentKeyShard
+    targetIds: string[]
+}
+
+export interface AgentKeyShard {
     d: string
     e: string
     eSplit: string
