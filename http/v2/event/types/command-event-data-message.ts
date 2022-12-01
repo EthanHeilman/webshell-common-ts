@@ -8,7 +8,7 @@ export interface CommandEventDataMessage {
     targetName: string;
     subjectId: string;
     subjectType: SubjectType;
-    userName: string;
+    subjectName: string;
     organizationId: string;
     timestamp: Date;
     targetUser: string;

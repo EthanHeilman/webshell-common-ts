@@ -1,5 +1,5 @@
-import { UserRole } from '../types/user-role.types';
+import { SubjectRole } from '../../subject/types/subject-role.types';
 
 export interface UpdateUserRequest {
-     role: UserRole;
+     role: SubjectRole;
  }
