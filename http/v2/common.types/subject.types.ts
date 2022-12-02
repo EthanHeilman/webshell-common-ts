@@ -1,4 +1,5 @@
 export enum SubjectType {
      User = 'User',
-     ApiKey = 'ApiKey'
+     ApiKey = 'ApiKey',
+     ServiceAccount = 'ServiceAccount'
  };

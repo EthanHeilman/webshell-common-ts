@@ -3,7 +3,7 @@ import { SubjectType } from '../../common.types/subject.types';
 export interface UserEventFilterRequest {
     subjectIds?: string[];
     subjectTypes?: SubjectType[];
-    userNames?: string[];
+    subjectNames?: string[];
     isAdmin?: boolean;
     ipAddresses?: string[];
     startTimestamp?: Date;
