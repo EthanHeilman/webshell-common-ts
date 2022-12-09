@@ -3,16 +3,16 @@ export interface GenerateCertificateResponse {
     serverCert?: string
     serverKey?: string
     agentKeyShard?: MappedKeyShard
+    agentTargets: AgentTargetSummary[]
 }
 
 export interface MappedKeyShard {
-    key: AgentKeyShard
+    key: string
     targetIds: string[]
 }
 
-export interface AgentKeyShard {
-    d: string
-    e: string
-    eSplit: string
-    n: string
+export interface AgentTargetSummary {
+    name: string
+    envId: string
+    dbTargets: string[]
 }
