@@ -3,4 +3,7 @@ export interface GenerateCertificateRequest {
     targetIds: string[]
     envName?: string
     envId?: string
+    all: boolean
+    selfHosted: boolean
+    returnAgentKey: boolean
 }
