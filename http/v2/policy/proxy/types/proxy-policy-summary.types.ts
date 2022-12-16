@@ -1,7 +1,7 @@
 import { BasePolicySummary } from '../../types/base-policy-summary.types';
 import { Environment } from '../../types/environment.types';
 import { PolicyType } from '../../types/policy-type.types';
-import { TargetRole } from '../../types/target-role.types';
+import { TargetUser } from '../../types/target-user.types';
 import { Target } from '../../types/target.types';
 
 export interface ProxyPolicySummary extends BasePolicySummary {
@@ -16,7 +16,7 @@ export interface ProxyPolicySummary extends BasePolicySummary {
      */
     targets: Target[];
     /**
-     * Roles allowed access on the target. NOTE: only applies to passwordless database targets.
+     * Users allowed access on the target. NOTE: only applies to passwordless database targets.
      */
-    targetRoles?: TargetRole[];
+    targetUsers?: TargetUser[];
 }
