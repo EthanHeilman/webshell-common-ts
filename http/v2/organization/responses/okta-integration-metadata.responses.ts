@@ -1,11 +1,4 @@
-import { IdentityProvider } from '../../../../auth-service/auth.types';
+import { IntegrationMetadataResponse } from './integration-metadata.responses';
 
-export interface OktaIntegrationMetadataResponse {
-    clientId: string;
-    creationDate: Date;
-    lastUpdateDate: Date;
-    adminEmail: string;
-    userReadonlyScope: boolean;
-    groupReadonlyScope: boolean;
-    externalIdentityProviderType: IdentityProvider;
+export interface OktaIntegrationMetadataResponse extends IntegrationMetadataResponse {
 }
