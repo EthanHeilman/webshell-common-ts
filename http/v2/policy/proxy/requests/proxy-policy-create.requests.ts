@@ -1,6 +1,7 @@
 import { Environment } from '../../types/environment.types';
 import { Group } from '../../types/group.types';
 import { Subject } from '../../types/subject.types';
+import { TargetUser } from '../../types/target-user.types';
 import { Target } from '../../types/target.types';
 
 export interface ProxyPolicyCreateRequest {
@@ -31,4 +32,8 @@ export interface ProxyPolicyCreateRequest {
      * A value must be provided for either <code>targets</code> or <code>environments</code>.
      */
     targets?: Target[];
+    /**
+     * Users allowed access on the target. NOTE: only applies to passwordless database targets.
+     */
+    targetUsers?: TargetUser[];
 }

@@ -26,6 +26,14 @@ export interface AddNewDbTargetRequest {
      */
     localPort?: OptionalPort;
     /**
+     * Indicates whether the target is accessed by a SplitCert connection. False by default
+     */
+    splitCert?: boolean;
+    /**
+     * The type of database running on the target (e.g., Postgres, MongoDB)
+     */
+    databaseType?: string;
+    /**
      * Must specify either environmentId or environmentName.
      */
     environmentId?: string;

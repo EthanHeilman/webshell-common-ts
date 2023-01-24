@@ -1,6 +1,7 @@
 import { Environment } from '../../types/environment.types';
 import { Group } from '../../types/group.types';
 import { Subject } from '../../types/subject.types';
+import { TargetUser } from '../../types/target-user.types';
 import { Target } from '../../types/target.types';
 
 export interface ProxyPolicyUpdateRequest {
@@ -29,4 +30,8 @@ export interface ProxyPolicyUpdateRequest {
      * Targets this policy applies to.
      */
     targets?: Target[];
+    /**
+     * Users allowed access on the target. NOTE: only applies to passwordless database targets.
+     */
+    targetUsers?: TargetUser[];
 }
