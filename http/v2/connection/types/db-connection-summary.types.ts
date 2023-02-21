@@ -4,4 +4,5 @@ export interface DbConnectionSummary extends BaseConnectionSummary {
     remoteHost: string;
     remotePort: number;
     targetName: string;
+    targetUser?: string;
 }
