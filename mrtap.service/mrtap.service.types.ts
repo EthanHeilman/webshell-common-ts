@@ -20,8 +20,8 @@ export function getDefaultMrtapConfig(): MrtapConfigSchema {
     };
 }
 
-export interface ConfigInterface {
-    updateMrtap(data: MrtapConfigSchema): void
-    loadMrtap(): MrtapConfigSchema
-    removeMrtap(): void
+export interface MrtapConfigInterface {
+    getMrtap(): MrtapConfigSchema
+    setMrtap(data: MrtapConfigSchema): void
+    clearMrtap(): void
 }

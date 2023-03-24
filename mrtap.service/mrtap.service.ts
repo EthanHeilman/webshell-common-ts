@@ -3,23 +3,23 @@ import * as ed from 'noble-ed25519';
 import * as CryptoJS from 'crypto-js';
 
 import { ILogger } from '../logging/logging.types';
-import { ConfigInterface, getDefaultMrtapConfig, MrtapConfigSchema } from './mrtap.service.types';
+import { MrtapConfigInterface, getDefaultMrtapConfig, MrtapConfigSchema } from './mrtap.service.types';
 import { BZECert, DataMessageWrapper, SynMessageWrapper, MrtapMessage, SynMessagePayload, DataMessagePayload } from './mrtap-types';
 import { OrgBZCertValidationInfo } from '../http/v2/organization/types/organization-bzcert-validation-info.types';
 import Utils from '../utility/utils';
 
 export class MrtapService {
-    private config: ConfigInterface;
+    private config: MrtapConfigInterface;
     private data: MrtapConfigSchema;
     private logger: ILogger;
 
     private publicKey: Uint8Array;
     private privateKey: Uint8Array;
 
-    constructor(config: ConfigInterface, logger: ILogger) {
+    constructor(config: MrtapConfigInterface, logger: ILogger) {
         this.config = config;
         this.logger = logger;
-        this.data = this.config.loadMrtap();
+        this.data = this.config.getMrtap();
     }
 
     public async init(): Promise<void> {
@@ -34,7 +34,7 @@ export class MrtapService {
 
     public setInitialIdToken(latestIdToken: string): void {
         this.data.initialIdToken = latestIdToken;
-        this.config.updateMrtap(this.data);
+        this.config.setMrtap(this.data);
         this.logger.debug('Updated latestIdToken');
     }
 
@@ -43,7 +43,7 @@ export class MrtapService {
         this.data.orgProvider = validationInfo.orgIdpProvider;
 
         // Update MrTAP config file
-        this.config.updateMrtap(this.data);
+        this.config.setMrtap(this.data);
     }
 
     public async getBZECert(currentIdToken: string): Promise<BZECert> {
@@ -89,7 +89,7 @@ export class MrtapService {
         await this.generateCerRand();
 
         // Update MrTAP config file
-        this.config.updateMrtap(this.data);
+        this.config.setMrtap(this.data);
 
         this.logger.debug('Reset MrTAP service');
     }
@@ -113,7 +113,7 @@ export class MrtapService {
     }
 
     public removeMrtapData(): void {
-        this.config.removeMrtap();
+        this.config.clearMrtap();
     }
 
     private encodeDataPayload(payload: any) {
