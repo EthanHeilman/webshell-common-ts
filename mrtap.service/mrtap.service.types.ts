@@ -21,7 +21,7 @@ export function getDefaultMrtapConfig(): MrtapConfigSchema {
 }
 
 export interface MrtapConfigInterface {
-    getMrtap(): MrtapConfigSchema
+    getMrtap(): Promise<MrtapConfigSchema>
     setMrtap(data: MrtapConfigSchema): void
     clearMrtap(): void
 }

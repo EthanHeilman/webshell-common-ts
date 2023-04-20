@@ -19,11 +19,13 @@ export class MrtapService {
     constructor(config: MrtapConfigInterface, logger: ILogger) {
         this.config = config;
         this.logger = logger;
-        this.data = this.config.getMrtap();
     }
 
     public async init(): Promise<void> {
         // Init function so we can wait on async function calls
+
+        this.data = await this.config.getMrtap();
+
         // Load our keys if they are there
         await this.loadKeys();
     }
@@ -32,18 +34,20 @@ export class MrtapService {
         return '1.1';
     }
 
-    public setInitialIdToken(latestIdToken: string): void {
+    public async setInitialIdToken(latestIdToken: string): Promise<void> {
         this.data.initialIdToken = latestIdToken;
-        this.config.setMrtap(this.data);
+
+        await this.config.setMrtap(this.data);
+
         this.logger.debug('Updated latestIdToken');
     }
 
-    public setOrgBZCertValidationInfo(validationInfo: OrgBZCertValidationInfo): void {
+    public async setOrgBZCertValidationInfo(validationInfo: OrgBZCertValidationInfo): Promise<void> {
         this.data.orgIssuerId = validationInfo.orgIdpIssuerId;
         this.data.orgProvider = validationInfo.orgIdpProvider;
 
         // Update MrTAP config file
-        this.config.setMrtap(this.data);
+        await this.config.setMrtap(this.data);
     }
 
     public async getBZECert(currentIdToken: string): Promise<BZECert> {
@@ -89,7 +93,7 @@ export class MrtapService {
         await this.generateCerRand();
 
         // Update MrTAP config file
-        this.config.setMrtap(this.data);
+        await this.config.setMrtap(this.data);
 
         this.logger.debug('Reset MrTAP service');
     }
