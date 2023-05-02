@@ -2,5 +2,6 @@ export enum IdentityProvider {
     Google = 'google',
     Microsoft = 'microsoft',
     Okta = 'okta',
-    OneLogin = 'onelogin'
+    OneLogin = 'onelogin',
+    Keycloak = 'keycloak'
   }
