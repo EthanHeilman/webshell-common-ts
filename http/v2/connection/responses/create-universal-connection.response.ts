@@ -1,6 +1,6 @@
 import { AgentType } from '../../target/types/agent.types';
 import { TargetType } from '../../target/types/target.types';
-import { ShellConnectionAuthDetails } from '../types/shell-connection-auth-details.types';
+import { ConnectionAuthDetails } from '../types/connection-auth-details.types';
 
 export interface CreateUniversalConnectionResponse {
     connectionId: string;
@@ -11,7 +11,7 @@ export interface CreateUniversalConnectionResponse {
     targetUser: string;
     agentPublicKey: string;
     agentVersion: string;
-    connectionAuthDetails: ShellConnectionAuthDetails;
+    connectionAuthDetails: ConnectionAuthDetails;
     sshScpOnly?: boolean;
     splitCert?: boolean;
 }
