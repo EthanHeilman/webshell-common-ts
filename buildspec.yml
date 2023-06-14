@@ -7,7 +7,7 @@ env:
 phases:
   install:
     runtime-versions:
-      nodejs: 12
+      nodejs: 14
     commands:
       - echo Install started on `date`
       - npm install -g eslint typescript @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-unused-imports

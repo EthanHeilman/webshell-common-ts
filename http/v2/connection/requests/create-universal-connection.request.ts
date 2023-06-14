@@ -1,3 +1,4 @@
+import { VerbType } from '../../policy/types/verb-type.types';
 import { TargetType } from '../../target/types/target.types';
 
 export interface CreateUniversalConnectionRequest {
@@ -8,4 +9,5 @@ export interface CreateUniversalConnectionRequest {
     envName?: string;
     targetGroups?: string[];
     targetType?: TargetType;
+    verbType?: VerbType;
 }

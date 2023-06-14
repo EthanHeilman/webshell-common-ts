@@ -2,5 +2,6 @@ export enum VerbType {
      Shell = 'Shell',
      FileTransfer = 'FileTransfer',
      Tunnel = 'Tunnel',
-     RDP = 'RDP'
+     RDP = 'RDP',
+     SQLServer = 'SQLServer'
  };
